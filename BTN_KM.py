@@ -25,7 +25,7 @@ Dependencies and configurations are centralized in `config.py`.
 import os, sys
 
 sys.path.append(os.getcwd())
-from functions.utils import (
+from utils import (
     safelog,
     pure_power_features_full,
     dotkron,

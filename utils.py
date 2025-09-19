@@ -4,7 +4,6 @@ Dependencies and configurations are centralized in `config.py`.
 """
 
 import os, sys
-
 sys.path.append(os.getcwd())
 from config import *  # Import everything from config.py
 import numpy as np
