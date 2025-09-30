@@ -19,28 +19,54 @@ def lagfeatures(input_, tinput, output, toutput, inlags, outlags):
     yt       : array, target time vector
     """
 
+    # Convert to numpy arrays
     input_ = np.asarray(input_)
     tinput = np.asarray(tinput)
     output = np.asarray(output)
     toutput = np.asarray(toutput)
+    inlags = np.asarray(inlags)
+    outlags = np.asarray(outlags)
 
-    # Calculate ending indices
-    ending = len(input_) - max(outlags[-1], inlags[-1]) - 1
-    endingt = len(tinput) - max(outlags[-1], inlags[-1]) - 1
+    # Determine maximum lag
+    max_lag = max(inlags.max(), outlags.max())
 
-    # Generate features using input lags
-    u = np.column_stack([input_[len(input_)-inlag-ending : len(input_)-inlag] for inlag in inlags])
-    uv = np.column_stack([tinput[len(tinput)-inlag-endingt : len(tinput)-inlag] for inlag in inlags])
+    # Calculate how many samples we can use
+    ending = len(input_) - max_lag
+    endingt = len(tinput) - max_lag
 
-    # Generate features using output lags
-    y = np.column_stack([output[len(output)-outlag-ending : len(output)-outlag] for outlag in outlags])
-    yv = np.column_stack([toutput[len(toutput)-outlag-endingt : len(toutput)-outlag] for outlag in outlags])
+    if ending <= 0 or endingt <= 0:
+        raise ValueError("Not enough data points for the specified lags.")
 
-    # Features: lagged outputs (except first column) + lagged inputs
-    featurez = np.hstack([y[:, ::-1][:, 1:], u])
-    zeta = y[:, 0]
+    # Preallocate arrays
+    N = ending  # number of final usable samples
+    u = np.zeros((N, len(inlags)))
+    uv = np.zeros((N, len(inlags)))
+    y = np.zeros((N, len(outlags)))
+    yv = np.zeros((N, len(outlags)))
 
-    tfeaturez = np.hstack([yv[:, ::-1][:, 1:], uv])
-    yt = yv[:, 0]
+    # ---- Generate features using input lags ----
+    for l, lag in enumerate(inlags):
+        # Slice to match MATLAB inclusive indexing
+        # MATLAB: input(end - lag - ending + 1 : end - lag)
+        u[:, l] = input_[-lag - ending : -lag]
+        uv[:, l] = tinput[-lag - endingt : -lag]
+
+    # ---- Generate features using output lags ----
+    for l, lag in enumerate(outlags):
+        if lag == 0:
+            # slice ending elements, length = ending
+            y[:, l] = output[-ending:]
+            yv[:, l] = toutput[-endingt:]
+        else:
+            y[:, l] = output[-(lag + ending):-lag]
+            yv[:, l] = toutput[-(lag + endingt):-lag]
+
+    # ---- Combine features ----
+    # Reverse output lags and exclude the current output (first column in MATLAB)
+    featurez = np.hstack([y[:, ::-1][:, 0:], u])
+    zeta = y[:, 0]  # target variable is the most recent output
+
+    tfeaturez = np.hstack([yv[:, ::-1][:, 0:], uv])
+    yt = yv[:, 0]  # target time vector
 
     return featurez, zeta, tfeaturez, yt
