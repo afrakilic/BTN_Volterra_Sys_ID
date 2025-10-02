@@ -122,8 +122,8 @@ class btnkm:
         WSigma_D = [0.1 * np.kron(np.eye(R), np.eye(I)) for d in range(D)]
 
         # Feature map
-        Phi = pure_power_features_full(X, input_dimension) + 0.2
-        Phix = features_GP(X, input_dimension, 0.1) + 0.3
+        #Phi = pure_power_features_full(X, input_dimension) + 0.2
+        Phi = features_GP(X, input_dimension) +0.4
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0
@@ -436,7 +436,8 @@ class btnkm:
             )
 
         # Feature map
-        Phi = pure_power_features_full(features, input_dimension) + 0.2
+        #Phi = pure_power_features_full(features, input_dimension) + 0.2
+        Phi = features_GP(features, input_dimension) + 0.4
 
         # Combine the factor matrices to compute predictions
         W_D_PROD = np.ones(

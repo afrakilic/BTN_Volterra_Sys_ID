@@ -35,7 +35,7 @@ def pure_power_features_full(X, input_dimension):
     return Mati
 
 
-def features_GP(X, M, lengthscale):
+def features_GP(X, M ):
     """
     Compute the features for the input matrix X, given M features and lengthscale,
     and return a 3D array with shape (n_features, n_samples, M).
@@ -49,9 +49,11 @@ def features_GP(X, M, lengthscale):
     - Mati: 3D numpy array of shape (n_features, n_samples, M) containing the computed features.
     """
 
+    lengthscale = 0.01
+    L = 2 * lengthscale
     # Normalize X
-    X_normalized = (X + 0.5) / 2  # Normalize each element of X
-    
+    X_normalized = (X + L) / (2*L)  # Normalize each element of X
+    #X_normalized = (X + 0.5) / 2  # Normalize each element of X
     # Create w (1 to M)
     w = np.arange(1, M + 1)
     
