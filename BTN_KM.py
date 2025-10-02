@@ -28,6 +28,7 @@ sys.path.append(os.getcwd())
 from utils import (
     safelog,
     pure_power_features_full,
+    features_GP,
     dotkron,
     temp,
     columnwise_kronecker,
@@ -122,6 +123,7 @@ class btnkm:
 
         # Feature map
         Phi = pure_power_features_full(X, input_dimension) + 0.2
+        Phix = features_GP(X, input_dimension, 0.1) + 0.3
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0

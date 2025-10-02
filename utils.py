@@ -35,6 +35,38 @@ def pure_power_features_full(X, input_dimension):
     return Mati
 
 
+def features_GP(X, M, lengthscale):
+    """
+    Compute the features for the input matrix X, given M features and lengthscale,
+    and return a 3D array with shape (n_features, n_samples, M).
+
+    Parameters:
+    - X: Input data (2D numpy array of shape (n_samples, n_features))
+    - Y: Target data for learning the lengthscale
+    - M: Number of features (int)
+
+    Returns:
+    - Mati: 3D numpy array of shape (n_features, n_samples, M) containing the computed features.
+    """
+
+    # Normalize X
+    X_normalized = (X + 0.5) / 2  # Normalize each element of X
+    
+    # Create w (1 to M)
+    w = np.arange(1, M + 1)
+    
+    # Compute S
+    S = np.sqrt(2 * np.pi) * lengthscale * np.exp(-((np.pi * w / 2) ** 2) * lengthscale ** 2 / 2)
+    
+    # Compute the feature matrix for all features in X
+    # Transpose X_normalized for feature-first orientation
+    X_normalized = X_normalized.T  # Shape: (n_features, n_samples)
+    Mati = np.sin(np.pi * X_normalized[:, :, np.newaxis] * w) * np.sqrt(S)  # Shape: (n_features, n_samples, M)
+
+    return Mati
+
+
+
 def columnwise_kronecker(A, B):
     """Compute the columnwise Kronecker product of two matrices A and B."""
     # Check dimensions
