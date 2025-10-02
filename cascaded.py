@@ -8,22 +8,24 @@ mat = scipy.io.loadmat('/Users/hakilic/Downloads/Tensor-Network-B-splines-master
 # Print keys to see what’s inside
 print(mat.keys())
 
-u_train = mat['uEst'].squeeze()
-u_test = mat['uVal'].squeeze()
-y_train = mat['yEst'].squeeze()
-y_test = mat['yVal'].squeeze()
+uEst = mat['uEst'].squeeze()
+uVal = mat['uVal'].squeeze()
+yEst = mat['yEst'].squeeze()
+yVal = mat['yVal'].squeeze()
 
 # MATLAB lags
-matlab_inlags = [1, 2, 3, 4, 8, 16, 32]
-matlab_outlags = [0, 1, 2, 3, 4, 8, 16, 32]
-
-# Convert MATLAB to Python indexing
-inlags = [lag - 1 for lag in matlab_inlags]
-outlags = [lag - 1 if lag != 0 else 0 for lag in matlab_outlags]
+inlags = [1, 2, 3, 4, 8, 16]
+outlags = [0, 1, 2, 3, 4, 8, 16]
 
 print("Python inlags:", inlags)
 print("Python outlags:", outlags)
 
+
+#Normalize the input and output training data to [0 1]
+u_train = uEst #/7
+y_train = yEst#/10 - 0.1
+u_test = uVal #/ 7
+y_test = yVal#/10 - 0.1
 X_train, y_train, X_test, y_test = lagfeatures(u_train, u_test, y_train, y_test, inlags, outlags)
 
 X_mean = X_train.mean(axis=0)
@@ -38,10 +40,10 @@ y_train = (y_train - y_mean) / y_std
 
 
 # hyper-parameters
-input_dimension = 5
+input_dimension = 2
 max_rank = 25
 
-a, b = 1e-3, 1e-3
+a, b = 1e-2, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
 g, h = 1e-6 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
 
@@ -57,7 +59,7 @@ R, _, _, _, _, _, _ = model.train(
         scale_parameter_lambda_R=d,
         shape_parameter_lambda_M=g,
         scale_parameter_lambda_M=h,
-        max_iter=50,
+        max_iter=10,
         precision_update=True,
         lambda_R_update=True,
         lambda_M_update=True,
@@ -95,8 +97,8 @@ plt.plot(time_steps, prediction_mean_unscaled, label='Predicted Output', color='
 # Optionally, add confidence intervals (±1 std)
 plt.fill_between(
     time_steps,
-    prediction_mean_unscaled - prediction_std_unscaled,
-    prediction_mean_unscaled + prediction_std_unscaled,
+    prediction_mean_unscaled - 3* prediction_std_unscaled,
+    prediction_mean_unscaled + 3*prediction_std_unscaled,
     color='orange',
     alpha=0.2,
     label='Prediction ±1 std'
