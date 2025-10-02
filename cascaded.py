@@ -40,10 +40,10 @@ y_train = (y_train - y_mean) / y_std
 
 
 # hyper-parameters
-input_dimension = 2
-max_rank = 25
+input_dimension = 3
+max_rank = 20
 
-a, b = 1e-2, 1e-3
+a, b = 1e-3, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
 g, h = 1e-6 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
 
