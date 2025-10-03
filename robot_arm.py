@@ -12,15 +12,7 @@ y_train = data['y_train'].squeeze().T[:,0]
 y_test = data['y_test'].squeeze().T[:,0]
 
 
-plt.figure(figsize=(10, 4))
-plt.plot(y_test, marker='o', linestyle='-', color='blue')
-plt.title('y_test (first column)')
-plt.xlabel('Sample index')
-plt.ylabel('Value')
-plt.grid(True)
-plt.show()
-
-# Compute min and max from training set
+# # Compute min and max from training set
 X_min = X_train.min(axis=0)
 X_max = X_train.max(axis=0)
 
@@ -58,11 +50,11 @@ R, _, _, _, _, _, _ = model.train(
     scale_parameter_lambda_R=d,
     shape_parameter_lambda_M=g,
     scale_parameter_lambda_M=h,
-    max_iter=10,
+    max_iter=50,
     precision_update=True,
     lambda_R_update=True,
     lambda_M_update=True,
-    plot_results=False,
+    plot_results=True,
     prune_rank=True,
 )
 
@@ -72,8 +64,8 @@ prediction_mean, prediction_std, _ = model.predict(
     features=X_test, input_dimension=input_dimension
 )
 
-prediction_mean_unscaled = prediction_mean * y_std + y_mean
-prediction_std_unscaled = prediction_std * y_std
+prediction_mean_unscaled = prediction_mean  * y_std + y_mean
+prediction_std_unscaled = prediction_std  * y_std
 
 rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test) ** 2))
 
@@ -86,14 +78,14 @@ nll = 0.5 * np.log(2 * np.pi * prediction_std_unscaled**2) + 0.5 * (
 print("NLL:", np.mean(nll))
 
 # Plot
-time_steps = np.arange(len(y_test))
+time_steps = np.arange(len(y_test[:801]))
 plt.figure(figsize=(14, 6))
-plt.plot(time_steps, y_test, label='Actual Output (y_test)', color='blue', linewidth=2)
-plt.plot(time_steps, prediction_mean, label='Predicted Output', color='orange', linewidth=2)
+plt.plot(time_steps, y_test[:801], label='Actual Output (y_test)', color='blue', linewidth=2)
+plt.plot(time_steps, prediction_mean[:801], label='Predicted Output', color='orange', linewidth=2)
 plt.fill_between(
     time_steps,
-    prediction_mean - 1*prediction_std,
-    prediction_mean + 1*prediction_std,
+    prediction_mean[:801] - 1*prediction_std[:801],
+    prediction_mean[:801] + 1*prediction_std[:801],
     color='orange',
     alpha=0.2,
     label='Prediction ±1 std'

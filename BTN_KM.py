@@ -123,7 +123,7 @@ class btnkm:
 
         # Feature map
         #Phi = pure_power_features_full(X, input_dimension) + 0.2
-        Phi = features_GP(X, input_dimension) +0.4
+        Phi = features_GP(X, input_dimension)  +0.2
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0
@@ -437,7 +437,7 @@ class btnkm:
 
         # Feature map
         #Phi = pure_power_features_full(features, input_dimension) + 0.2
-        Phi = features_GP(features, input_dimension) + 0.4
+        Phi = features_GP(features, input_dimension)+ 0.2
 
         # Combine the factor matrices to compute predictions
         W_D_PROD = np.ones(

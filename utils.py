@@ -49,7 +49,7 @@ def features_GP(X, M ):
     - Mati: 3D numpy array of shape (n_features, n_samples, M) containing the computed features.
     """
 
-    lengthscale = 0.01
+    lengthscale = .4706
     L = 2 * lengthscale
     # Normalize X
     X_normalized = (X + L) / (2*L)  # Normalize each element of X
