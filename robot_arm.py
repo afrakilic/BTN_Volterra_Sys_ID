@@ -33,9 +33,9 @@ y_train = (y_train - y_mean) / y_std
 input_dimension = 20
 max_rank = 20
 
-a, b = 1e-1, 1e-3
+a, b = 1e-3, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
-g, h = 1e-6 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
+g, h = 1e-5 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
 
 # Train model
 model = btnkm(X_train.shape[1])
@@ -58,14 +58,15 @@ R, _, _, _, _, _, _ = model.train(
     prune_rank=True,
 )
 
+
 # Predict
 # Predict (mse is returned by the predict function)
 prediction_mean, prediction_std, _ = model.predict(
     features=X_test, input_dimension=input_dimension
 )
 
-prediction_mean_unscaled = prediction_mean  * y_std + y_mean
-prediction_std_unscaled = prediction_std  * y_std
+prediction_mean_unscaled = prediction_mean * y_std + y_mean
+prediction_std_unscaled = prediction_std * y_std
 
 rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test) ** 2))
 
@@ -81,16 +82,16 @@ print("NLL:", np.mean(nll))
 time_steps = np.arange(len(y_test[:801]))
 plt.figure(figsize=(14, 6))
 plt.plot(time_steps, y_test[:801], label='Actual Output (y_test)', color='blue', linewidth=2)
-plt.plot(time_steps, prediction_mean[:801], label='Predicted Output', color='orange', linewidth=2)
+plt.plot(time_steps, prediction_mean_unscaled[:801], label='Predicted Output', color='orange', linewidth=2)
 plt.fill_between(
     time_steps,
-    prediction_mean[:801] - 1*prediction_std[:801],
-    prediction_mean[:801] + 1*prediction_std[:801],
+    prediction_mean[:801] - 3*prediction_std[:801],
+    prediction_mean[:801] + 3*prediction_std[:801],
     color='orange',
     alpha=0.2,
-    label='Prediction ±1 std'
+    label='Prediction ±3 std'
 )
-plt.ylim(-6, 6)  # Limit Y-axis
+plt.ylim(-15, 15)  # Limit Y-axis
 plt.xlabel('Time Step', fontsize=12)
 plt.ylabel('Output', fontsize=12)
 plt.title('Test Output vs Predictions', fontsize=14)
