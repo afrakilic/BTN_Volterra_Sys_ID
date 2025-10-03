@@ -463,7 +463,8 @@ class btnkm:
             x = columnwise_kronecker(Phi[d].T, hadamard_product.T)
             sum_matrix += x.T @ self.V[d] @ x
 
-        S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
+        S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + (1/len(self.W_D)) * sum_matrix)
+        #S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
         std_dev = np.sqrt(np.diag(S))  # Standard deviation for each prediction
         if true_values is not None:
             if classification:
