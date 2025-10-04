@@ -450,7 +450,9 @@ class btnkm:
             )  # Element-wise multiplication
 
         predictions = np.sum(W_D_PROD, axis=1)  # Mean predictions
-
+ 
+        #self.V = [V / (np.linalg.norm(V, 'fro') if np.linalg.norm(V, 'fro') != 0 else 1.0) for V in self.V]
+        self.V = [V / (np.trace(V) if np.trace(V) != 0 else 1.0) for V in self.V]
         # Uncertainty quantification
         N = features.shape[0]
         R = self.W_D[0].shape[1]
@@ -464,6 +466,8 @@ class btnkm:
             x = columnwise_kronecker(Phi[d].T, hadamard_product.T)
             sum_matrix += x.T @ self.V[d] @ x
 
+
+        
         S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + sum_matrix)
         #S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
 
