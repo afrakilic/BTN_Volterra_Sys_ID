@@ -14,11 +14,9 @@ yEst = mat['yEst'].squeeze()
 yVal = mat['yVal'].squeeze()
 
 # MATLAB lags
-inlags = [1, 2, 3, 4, 8, 16]
-outlags = [0, 1, 2, 3, 4, 8, 16]
+inlags = [1, 2, 3, 4, 8, 16, 32]
+outlags = [0, 1, 2, 3, 4, 8, 16, 32]
 
-print("Python inlags:", inlags)
-print("Python outlags:", outlags)
 
 
 #Normalize the input and output training data to [0 1]
@@ -28,11 +26,19 @@ u_test = uVal #/ 7
 y_test = yVal#/10 - 0.1
 X_train, y_train, X_test, y_test = lagfeatures(u_train, u_test, y_train, y_test, inlags, outlags)
 
-X_mean = X_train.mean(axis=0)
-X_std = X_train.std(axis=0)
-X_std[X_std == 0] = 1
-X_train = (X_train - X_mean) / X_std
-X_test = (X_test - X_mean) / X_std  # Use train stats
+
+# # Compute min and max from training set
+X_min = X_train.min(axis=0)
+X_max = X_train.max(axis=0)
+
+# Avoid division by zero for constant columns
+range_X = X_max - X_min
+range_X[range_X == 0] = 1  # prevents division by zero
+
+# Scale train and test, overwrite variables
+X_train = (X_train - X_min) / range_X
+X_test  = (X_test - X_min) / range_X
+
 
 y_mean = y_train.mean()
 y_std = y_train.std()
@@ -40,12 +46,12 @@ y_train = (y_train - y_mean) / y_std
 
 
 # hyper-parameters
-input_dimension = 3
+input_dimension = 20
 max_rank = 20
 
-a, b = 1e-3, 1e-3
+a, b = 1e-2, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
-g, h = 1e-6 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
+g, h = 1e-5 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
 
 model = btnkm(X_train.shape[1])
 R, _, _, _, _, _, _ = model.train(
@@ -75,6 +81,9 @@ prediction_mean, prediction_std, _ = model.predict(
 prediction_mean_unscaled = prediction_mean * y_std + y_mean
 prediction_std_unscaled = prediction_std * y_std
 
+rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test) ** 2))
+
+print(rmse)
 # nll
 nll = 0.5 * np.log(2 * np.pi * prediction_std_unscaled**2) + 0.5 * (
     (y_test - prediction_mean_unscaled) ** 2
@@ -101,7 +110,7 @@ plt.fill_between(
     prediction_mean_unscaled + 3*prediction_std_unscaled,
     color='orange',
     alpha=0.2,
-    label='Prediction ±1 std'
+    label='Prediction ±3 std'
 )
 
 # Styling
@@ -116,6 +125,3 @@ plt.tight_layout()
 plt.show()
 
 
-a = 2
-
-#merhaba
