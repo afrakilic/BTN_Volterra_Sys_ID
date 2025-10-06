@@ -191,3 +191,24 @@ def safe_division(X, A, epsilon=1):
 
 def safelog(x):
     return np.log(np.clip(x, 1e-10, 1e10))  # x to range [1e-10, 1e10]
+
+def MSLL(mstar, Pstar, ytest, sigma_n):
+    """
+    Compute the Mean Standardized Log Loss (MSLL).
+
+    Parameters:
+        mstar (array-like): Predicted means
+        Pstar (array-like): Predicted variances
+        ytest (array-like): True values
+        sigma_n (float): Noise variance
+
+    Returns:
+        float: MSLL value
+    """
+    mstar = np.array(mstar)
+    Pstar = np.array(Pstar)
+    ytest = np.array(ytest)
+    
+    n = len(mstar)
+    MSLL = np.sum((ytest - mstar)**2 / (Pstar + sigma_n**2) + np.log(2 * np.pi * (Pstar + sigma_n**2))) / (2 * n)
+    return MSLL
