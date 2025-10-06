@@ -28,7 +28,6 @@ sys.path.append(os.getcwd())
 from utils import (
     safelog,
     pure_power_features_full,
-    features_GP,
     dotkron,
     temp,
     columnwise_kronecker,
@@ -118,13 +117,11 @@ class btnkm:
 
         # initialize the factor matrices
         W_D = [np.random.randn(I, R) for _ in range(D)]  #  IXR
-        W_D = [(W - W.mean()) / (W.std() if W.std() != 0 else 1) for W in W_D]
         # Initialize the covariance matrices
         WSigma_D = [0.1 * np.kron(np.eye(R), np.eye(I)) for d in range(D)]
 
         # Feature map
-        #Phi = pure_power_features_full(X, input_dimension) + 0.2
-        Phi = features_GP(X, input_dimension)  +0.2
+        Phi = pure_power_features_full(X, input_dimension) + 0.2
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0
@@ -437,8 +434,7 @@ class btnkm:
             )
 
         # Feature map
-        #Phi = pure_power_features_full(features, input_dimension) + 0.2
-        Phi = features_GP(features, input_dimension)+ 0.2
+        Phi = pure_power_features_full(features, input_dimension) + 0.2
 
         # Combine the factor matrices to compute predictions
         W_D_PROD = np.ones(
@@ -450,9 +446,7 @@ class btnkm:
             )  # Element-wise multiplication
 
         predictions = np.sum(W_D_PROD, axis=1)  # Mean predictions
- 
-    
-        self.V = [V / (np.trace(V) if np.trace(V) != 0 else 1.0) for V in self.V]
+
         # Uncertainty quantification
         N = features.shape[0]
         R = self.W_D[0].shape[1]
@@ -464,14 +458,10 @@ class btnkm:
             for i in range(len(W_K)):
                 hadamard_product *= Phi_K[i] @ W_K[i]
             x = columnwise_kronecker(Phi[d].T, hadamard_product.T)
-            sum_matrix += x.T @ self.V[d] @ x
+            S_normalized = (x.T @ self.V[d] @ x) / (np.trace(x.T @ self.V[d] @ x) if np.trace(x.T @ self.V[d] @ x) != 0 else 1.0)
+            sum_matrix += S_normalized
 
-
-        
-        S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + sum_matrix)
-        #S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
-
-
+        S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
         std_dev = np.sqrt(np.diag(S))  # Standard deviation for each prediction
         if true_values is not None:
             if classification:
