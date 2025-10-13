@@ -1,42 +1,27 @@
 import scipy.io
 from lagfeatures import lagfeatures
 from config import *  # Import everything from config.py
-from BTN_KM import btnkm
+from volterra_BTN import btnkm
 # Replace 'your_file.mat' with the path to your .mat file
 mat = scipy.io.loadmat('/Users/hakilic/Downloads/Tensor-Network-B-splines-master/Cascaded/dataBenchmark.mat')
-
 
 uEst = mat['uEst'].squeeze()
 uVal = mat['uVal'].squeeze()
 yEst = mat['yEst'].squeeze()
 yVal = mat['yVal'].squeeze()
 
-# MATLAB lags
-inlags = [1, 2, 3, 4, 8, 16, 32]
-outlags = [0, 1, 2, 3, 4, 8, 16, 32]
-
-
-
 #Normalize the input and output training data to [0 1]
-u_train = uEst #/7
+u_train = uEst.reshape(-1, 1) #/7
 y_train = yEst#/10 - 0.1
-u_test = uVal #/ 7
+u_test = uVal.reshape(-1, 1) #/ 7
 y_test = yVal#/10 - 0.1
-X_train, y_train, X_test, y_test = lagfeatures(u_train, u_test, y_train, y_test, inlags, outlags)
 
 
-# # Compute min and max from training set
-X_min = X_train.min(axis=0)
-X_max = X_train.max(axis=0)
-
-# Avoid division by zero for constant columns
-range_X = X_max - X_min
-range_X[range_X == 0] = 1  # prevents division by zero
-
-# Scale train and test, overwrite variables
-X_train = (X_train - X_min) / range_X
-X_test  = (X_test - X_min) / range_X
-
+X_mean = u_train.mean(axis=0)
+X_std = u_train.std(axis=0)
+X_std[X_std == 0] = 1
+X_train = (u_train - X_mean) / X_std
+X_test = (u_test - X_mean) / X_std  # Use train stats
 
 y_mean = y_train.mean()
 y_std = y_train.std()
@@ -44,18 +29,20 @@ y_train = (y_train - y_mean) / y_std
 
 
 # hyper-parameters
-input_dimension = 20
+input_dimension = 95
 max_rank = 20
+Kernel_Degree = 2
 
 a, b = 1e-3, 1e-3
-c, d = 1e-6 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
-g, h = 1e-6 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
+c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
+g, h = 1e-5 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
 
-model = btnkm(X_train.shape[1])
+model = btnkm(Kernel_Degree)
 R, _, _, _, _, _, _ = model.train(
-        features=X_train,
+        features=u_train,
         target=y_train,
         input_dimension=input_dimension,
+        Volterra_Degree=Kernel_Degree, 
         max_rank=max_rank,
         shape_parameter_tau=a,
         scale_parameter_tau=b,
@@ -63,40 +50,40 @@ R, _, _, _, _, _, _ = model.train(
         scale_parameter_lambda_R=d,
         shape_parameter_lambda_M=g,
         scale_parameter_lambda_M=h,
-        max_iter=25,
+        max_iter=10,
         precision_update=True,
         lambda_R_update=True,
         lambda_M_update=True,
-        plot_results=False,
+        plot_results=True,
         prune_rank=True,
     )
 
     # Predict (mse is returned by the predict function)
 prediction_mean, prediction_std, _ = model.predict(
-    features=X_test, input_dimension=input_dimension
+    features=u_test, input_dimension=input_dimension
 )
 
-prediction_mean_unscaled = prediction_mean * y_std + y_mean
-prediction_std_unscaled = prediction_std * y_std
+prediction_mean_unscaled = prediction_mean[input_dimension:, ] * y_std + y_mean
+prediction_std_unscaled = prediction_std[input_dimension:, ] * y_std
 
-rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test) ** 2))
+rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test[input_dimension:, ]) ** 2))
 
 print(rmse)
 # nll
 nll = 0.5 * np.log(2 * np.pi * prediction_std_unscaled**2) + 0.5 * (
-    (y_test - prediction_mean_unscaled) ** 2
+    (y_test[input_dimension:, ] - prediction_mean_unscaled) ** 2
 ) / (prediction_std_unscaled**2)
 
 nll = np.mean(nll)
 
 print(nll)
 # Create a time vector for plotting
-time_steps = np.arange(len(y_test))
+time_steps = np.arange(len(y_test[input_dimension:, ]))
 
 plt.figure(figsize=(14, 6))
 
 # Plot actual test values
-plt.plot(time_steps, y_test, label='Actual Output (y_test)', color='blue', linewidth=2)
+plt.plot(time_steps, y_test[input_dimension:, ], label='Actual Output (y_test)', color='blue', linewidth=2)
 
 # Plot predicted values
 plt.plot(time_steps, prediction_mean_unscaled, label='Predicted Output', color='orange', linewidth=2)
@@ -104,11 +91,11 @@ plt.plot(time_steps, prediction_mean_unscaled, label='Predicted Output', color='
 # Optionally, add confidence intervals (±1 std)
 plt.fill_between(
     time_steps,
-    prediction_mean_unscaled - 3* prediction_std_unscaled,
-    prediction_mean_unscaled + 3*prediction_std_unscaled,
+    prediction_mean_unscaled - 1* prediction_std_unscaled,
+    prediction_mean_unscaled + 1*prediction_std_unscaled,
     color='orange',
     alpha=0.2,
-    label='Prediction ±3 std'
+    label='Prediction ±1 std'
 )
 
 # Styling
@@ -121,5 +108,3 @@ plt.tight_layout()
 
 # Show plot
 plt.show()
-
-

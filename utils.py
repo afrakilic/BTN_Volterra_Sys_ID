@@ -212,3 +212,51 @@ def MSLL(mstar, Pstar, ytest, sigma_n):
     n = len(mstar)
     MSLL = np.sum((ytest - mstar)**2 / (Pstar + sigma_n**2) + np.log(2 * np.pi * (Pstar + sigma_n**2))) / (2 * n)
     return MSLL
+
+
+def Volterra_Basis(u, M):
+    """
+    Construct the U matrix from input data u and memory length M.
+    
+    Equivalent to the MATLAB code:
+        U = zeros(N, n);
+        u = [zeros(M-1, p); u];
+        for i = M:N+M-1
+            temp = ones(1, n);
+            for j = 1:M
+                temp(2+(j-1)*p : 2+j*p-1) = u(i-j+1, :);
+            end
+            U(i-M+1, :) = temp;
+        end
+    
+    Parameters
+    ----------
+    u : ndarray, shape (N, p)
+        Input data matrix (N samples × p inputs)
+    M : int
+        Memory length / model order
+    
+    Returns
+    -------
+    U : ndarray, shape (N, n)
+        Constructed regression matrix, where n = p*M + 1
+    """
+    N, p = u.shape
+    n = p * M + 1
+    
+    # pad u with (M-1) zero rows at the top
+    u_padded = np.vstack([np.zeros((M - 1, p)), u])
+    
+    # preallocate U
+    U = np.zeros((N, n))
+    
+    # construct U row by row
+    for i in range(M, N + M):
+        temp = np.ones(n)
+        for j in range(1, M + 1):
+            start = 1 + (j - 1) * p   # 0-based index for Python
+            end = 1 + j * p
+            temp[start:end] = u_padded[i - j, :]
+        U[i - M, :] = temp
+
+    return U

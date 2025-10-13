@@ -28,11 +28,13 @@ sys.path.append(os.getcwd())
 from utils import (
     safelog,
     pure_power_features_full,
+    features_GP,
     dotkron,
     temp,
     columnwise_kronecker,
     safe_division,
     dotkronX,
+    Volterra_Basis
 )
 
 from config import *  # Import everything from config.py
@@ -55,6 +57,7 @@ class btnkm:
         features: np.ndarray,
         target: np.ndarray,
         input_dimension: int,
+        Volterra_Degree:int,
         max_rank: int,
         shape_parameter_tau: float = 1,
         scale_parameter_tau: float = 1,
@@ -69,19 +72,19 @@ class btnkm:
         rank_tol: int = 1e-5,  # this is threshold to keep the certain rank (i.e. columns in factor matrices)in terms of explained variance
         lambda_M_update: bool = True,
         precision_update: bool = True,
-        lower_bound_tol: int = 1e-4,
+        lower_bound_tol: int = 1e-3,
         plot_results: bool = True,
         classification: bool = False,
     ) -> None:
         # TODO doc string
         # Set a seed for reproducibility
         np.random.seed(seed)
-        I = input_dimension
+        I = input_dimension + 1
         R = max_rank
         X = features
         Y = target
         N = X.shape[0]
-        D = X.shape[1]
+        D = Volterra_Degree
 
         tau = shape_parameter_tau / scale_parameter_tau
         a0 = shape_parameter_tau
@@ -117,11 +120,14 @@ class btnkm:
 
         # initialize the factor matrices
         W_D = [np.random.randn(I, R) for _ in range(D)]  #  IXR
+        W_D = [(W - W.mean()) / (W.std() if W.std() != 0 else 1) for W in W_D]
         # Initialize the covariance matrices
         WSigma_D = [0.1 * np.kron(np.eye(R), np.eye(I)) for d in range(D)]
 
         # Feature map
-        Phi = pure_power_features_full(X, input_dimension) + 0.2
+        #Phi = pure_power_features_full(X, input_dimension) + 0.2
+        #Phi = features_GP(X, input_dimension)  +0.2
+        Phi = Volterra_Basis(X, input_dimension)
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0
@@ -133,9 +139,9 @@ class btnkm:
         hadamard_product_mean = np.ones((N, R))
         for d in range(len(W_D)):
             hadamard_product_V = hadamard_product_V * temp(
-                Phi=Phi[d], V=WSigma_D[d], R=R
+                Phi=Phi, V=WSigma_D[d], R=R
             )  # Element-wise multiplication
-            hadamard_product_mean = hadamard_product_mean * (Phi[d] @ W_D[d])
+            hadamard_product_mean = hadamard_product_mean * (Phi @ W_D[d])
 
         # MODEL LEARNING
         # FACTOR MATRICES UPDATE
@@ -144,16 +150,16 @@ class btnkm:
             for d in range(D):  # update the posterior q(vec(W^d)):
 
                 hadamard_product_V = safe_division(
-                    hadamard_product_V, (temp(Phi=Phi[d], V=WSigma_D[d], R=R))
+                    hadamard_product_V, (temp(Phi=Phi, V=WSigma_D[d], R=R))
                 )
                 hadamard_product_mean = safe_division(
-                    hadamard_product_mean, ((Phi[d] @ W_D[d]))
+                    hadamard_product_mean, ((Phi @ W_D[d]))
                 )
 
                 W_K_PROD_V = (
-                    dotkron(Phi[d], Phi[d]).T @ hadamard_product_V
+                    dotkron(Phi, Phi).T @ hadamard_product_V
                 )  # G^{d}G^{d}T
-                cc, cy = dotkronX(Phi[d], hadamard_product_mean, Y)
+                cc, cy = dotkronX(Phi, hadamard_product_mean, Y)
                 V_temp = np.reshape(
                     np.transpose(
                         np.reshape(W_K_PROD_V, (I, I, R, R), order="F"),
@@ -174,9 +180,9 @@ class btnkm:
                 W_D[d] = np.reshape((tau * WSigma_D[d] @ cy), (I, R), order="F")
 
                 hadamard_product_V = hadamard_product_V * temp(
-                    Phi=Phi[d], V=WSigma_D[d], R=R
+                    Phi=Phi, V=WSigma_D[d], R=R
                 )
-                hadamard_product_mean = hadamard_product_mean * (Phi[d] @ W_D[d])
+                hadamard_product_mean = hadamard_product_mean * (Phi @ W_D[d])
 
             # LAMBDA UPDATES
 
@@ -284,7 +290,7 @@ class btnkm:
             rankest = R
 
             # Rank pruning (optional)
-            if it > 2:
+            if it > 0:
                 if prune_rank:
                     Wall = np.vstack([W for W in W_D])
                     comPower = np.diag(Wall.T @ Wall)
@@ -434,19 +440,23 @@ class btnkm:
             )
 
         # Feature map
-        Phi = pure_power_features_full(features, input_dimension) + 0.2
+        #Phi = pure_power_features_full(features, input_dimension) + 0.2
+        #Phi = features_GP(features, input_dimension)+ 0.2
+        Phi = Volterra_Basis(features, input_dimension)
 
         # Combine the factor matrices to compute predictions
         W_D_PROD = np.ones(
-            (Phi[0].shape[0], self.W_D[0].shape[1])
+            (Phi.shape[0], self.W_D[0].shape[1])
         )  # Initialize product matrix
         for d in range(len(self.W_D)):
             W_D_PROD = np.multiply(
-                W_D_PROD, (Phi[d] @ self.W_D[d])
+                W_D_PROD, (Phi @ self.W_D[d])
             )  # Element-wise multiplication
 
         predictions = np.sum(W_D_PROD, axis=1)  # Mean predictions
-
+ 
+    
+        # self.V = [V / (np.trace(V) if np.trace(V) != 0 else 1.0) for V in self.V]
         # Uncertainty quantification
         N = features.shape[0]
         R = self.W_D[0].shape[1]
@@ -457,13 +467,17 @@ class btnkm:
             hadamard_product = np.ones((N, R))
             for i in range(len(W_K)):
                 hadamard_product *= Phi_K[i] @ W_K[i]
-            x = columnwise_kronecker(Phi[d].T, hadamard_product.T)
-            xVx = x.T @ self.V[d] @ x
-            TxVx = np.trace(x.T @ self.V[d] @ x)
-            S_normalized = (xVx) / (TxVx if TxVx != 0 else 1.0)
+            x = columnwise_kronecker(Phi.T, hadamard_product.T)
+            S_normalized = (x.T @ self.V[d] @ x) / (np.trace(x.T @ self.V[d] @ x) if np.trace(x.T @ self.V[d] @ x) != 0 else 1.0)
             sum_matrix += S_normalized
+            # sum_matrix += x.T @ self.V[d] @ x
 
+
+        
         S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + sum_matrix)
+        #S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
+
+
         std_dev = np.sqrt(np.diag(S))  # Standard deviation for each prediction
         if true_values is not None:
             if classification:
