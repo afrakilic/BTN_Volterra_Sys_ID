@@ -31,7 +31,7 @@ y_train = (y_train - y_mean) / y_std
 # hyper-parameters
 input_dimension = 95
 max_rank = 20
-Kernel_Degree = 2
+Kernel_Degree = 3
 
 a, b = 1e-3, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
@@ -91,11 +91,11 @@ plt.plot(time_steps, prediction_mean_unscaled, label='Predicted Output', color='
 # Optionally, add confidence intervals (±1 std)
 plt.fill_between(
     time_steps,
-    prediction_mean_unscaled - 1* prediction_std_unscaled,
-    prediction_mean_unscaled + 1*prediction_std_unscaled,
+    prediction_mean_unscaled - 3* prediction_std_unscaled,
+    prediction_mean_unscaled + 3*prediction_std_unscaled,
     color='orange',
     alpha=0.2,
-    label='Prediction ±1 std'
+    label='Prediction ±3 std'
 )
 
 # Styling
