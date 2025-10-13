@@ -38,7 +38,7 @@ c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
 g, h = 1e-5 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
 
 model = btnkm(Kernel_Degree)
-R, _, _, _, _, _, _ = model.train(
+R, W_D, lambda_M, lambda_R = model.train(
         features=u_train,
         target=y_train,
         input_dimension=input_dimension,

@@ -408,7 +408,7 @@ class btnkm:
             plt.tight_layout()
             plt.show()
 
-        return R, M_mean, M_std, M, W_D, R_values, LB[:it]
+        return R, W_D, lambda_M, lambda_R
 
     def predict(
         self,
