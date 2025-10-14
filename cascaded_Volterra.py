@@ -29,11 +29,11 @@ y_train = (y_train - y_mean) / y_std
 
 
 # hyper-parameters
-input_dimension = 95
+input_dimension = 100
 max_rank = 20
 Kernel_Degree = 3
 
-a, b = 1e-3, 1e-3
+a, b = 1e-4, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
 g, h = 1e-5 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
 
@@ -50,7 +50,8 @@ R, W_D, lambda_M, lambda_R = model.train(
         scale_parameter_lambda_R=d,
         shape_parameter_lambda_M=g,
         scale_parameter_lambda_M=h,
-        max_iter=10,
+        max_iter=20,
+        lower_bound_tol=1e-4,
         precision_update=True,
         lambda_R_update=True,
         lambda_M_update=True,
@@ -58,10 +59,21 @@ R, W_D, lambda_M, lambda_R = model.train(
         prune_rank=True,
     )
 
+
     # Predict (mse is returned by the predict function)
 prediction_mean, prediction_std, _ = model.predict(
     features=u_test, input_dimension=input_dimension
 )
+
+
+
+plt.figure(figsize=(8, 5))
+plt.plot(np.log(lambda_M), marker='o', linestyle='-', alpha=0.8)
+plt.title('Ordered λ_M Values')
+plt.xlabel('Sample Index (sorted)')
+plt.ylabel('λ_M Value')
+plt.grid(True, linestyle='--', alpha=0.5)
+plt.show()
 
 prediction_mean_unscaled = prediction_mean[input_dimension:, ] * y_std + y_mean
 prediction_std_unscaled = prediction_std[input_dimension:, ] * y_std

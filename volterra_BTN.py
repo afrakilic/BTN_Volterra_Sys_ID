@@ -109,14 +109,14 @@ class btnkm:
             if shape_parameter_lambda_M is not None
             else np.ones(I)
         )
-        g_N = [g0_m for _ in range(D)]
+        g_N = g0_m
         h0_m = (
             scale_parameter_lambda_M
             if scale_parameter_lambda_M is not None
             else np.ones(I)
         )
-        h_N = [h0_m for _ in range(D)]
-        lambda_M = [[g0_m / h0_m] for _ in range(D)]
+        h_N = h0_m
+        lambda_M = g0_m / h0_m
 
         # initialize the factor matrices
         W_D = [np.random.randn(I, R) for _ in range(D)]  #  IXR
@@ -170,7 +170,7 @@ class btnkm:
                 )
 
                 A = tau * (cc + V_temp) + np.kron(
-                    lambda_R * np.eye(R), lambda_M[d] * np.eye(I)
+                    lambda_R * np.eye(R), lambda_M * np.eye(I)
                 )
                 #try:
                  #   WSigma_D[d] = np.linalg.inv(A)
@@ -188,6 +188,8 @@ class btnkm:
 
             # Lambda_M Update
             if lambda_M_update:
+                g_N = ( D * R * 0.5) + g0_m 
+                h_N = 0 
                 for d in range(D):
                     mtemp = np.diag(W_D[d] @ (lambda_R * np.eye(R)) @ W_D[d].T)
                     vtemp = np.diag(
@@ -200,10 +202,11 @@ class btnkm:
                             (I, I),
                         )
                     )
-                    g_N[d] = g0_m + R / 2
-                    h_N[d] = h0_m * np.ones(I) + (mtemp + vtemp) / 2
-                    lambda_M[d] = g_N[d] / h_N[d]
-                    lambda_M[d][lambda_M[d] < 1e-5] = 1e-5
+                    
+                    h_N += mtemp + vtemp
+                h_N = h0_m + (0.5 * h_N)
+                lambda_M = g_N / h_N
+                lambda_M[lambda_M < 1e-5] = 1e-5
 
             # Lambda_R Update
             if lambda_R_update:
@@ -216,10 +219,10 @@ class btnkm:
                         np.reshape(WSigma_D[d], (I, R, I, R), order="F"),
                         axes=(0, 2, 1, 3),
                     )
-                    mtemp = np.diag(W_D[d].T @ (lambda_M[d] * np.eye(I)) @ W_D[d])
+                    mtemp = np.diag(W_D[d].T @ (lambda_M * np.eye(I)) @ W_D[d])
                     vtemp = np.diag(
                         np.reshape(
-                            (lambda_M[d] * np.eye(I)).ravel(order="F").T
+                            (lambda_M * np.eye(I)).ravel(order="F").T
                             @ WSigma_D[d]
                             .reshape(I, R, I, R)
                             .transpose(0, 2, 1, 3)
@@ -263,7 +266,7 @@ class btnkm:
 
             temp22 = np.zeros((I * R, I * R))
             for d in range(D):
-                temp22 += np.kron(lambda_R * np.eye(R), lambda_M[d] * np.eye(I)) @ (
+                temp22 += np.kron(lambda_R * np.eye(R), lambda_M * np.eye(I)) @ (
                     np.outer(W_D[d].ravel(order="F"), W_D[d].ravel(order="F"))
                     + WSigma_D[d]
                 )
@@ -277,9 +280,9 @@ class btnkm:
 
             temp5 = sum(
                 np.sum(
-                    gammaln(np.array(g_N[d]))
-                    + np.array(g_N[d])
-                    * (1 - safelog(np.array(h_N[d])) - (h0_m / np.array(h_N[d])))
+                    gammaln(np.array(g_N))
+                    + np.array(g_N)
+                    * (1 - safelog(np.array(h_N)) - (h0_m / np.array(h_N)))
                 )
                 for d in range(len(g_N))
             )
@@ -468,9 +471,10 @@ class btnkm:
             for i in range(len(W_K)):
                 hadamard_product *= Phi_K[i] @ W_K[i]
             x = columnwise_kronecker(Phi.T, hadamard_product.T)
-            S_normalized = (x.T @ self.V[d] @ x) / (np.trace(x.T @ self.V[d] @ x) if np.trace(x.T @ self.V[d] @ x) != 0 else 1.0)
+            xVx = x.T @ self.V[d] @ x
+            TxVx = np.trace(x.T @ self.V[d] @ x)
+            S_normalized = (xVx) / (TxVx if TxVx != 0 else 1.0)
             sum_matrix += S_normalized
-            # sum_matrix += x.T @ self.V[d] @ x
 
 
         
