@@ -72,7 +72,7 @@ class btnkm:
         rank_tol: int = 1e-5,  # this is threshold to keep the certain rank (i.e. columns in factor matrices)in terms of explained variance
         lambda_M_update: bool = True,
         precision_update: bool = True,
-        lower_bound_tol: int = 1e-3,
+        lower_bound_tol: int = 1e-4,
         plot_results: bool = True,
         classification: bool = False,
     ) -> None:
@@ -127,7 +127,7 @@ class btnkm:
         # Feature map
         #Phi = pure_power_features_full(X, input_dimension) + 0.2
         #Phi = features_GP(X, input_dimension)  +0.2
-        Phi = Volterra_Basis(X, input_dimension)
+        Phi = Volterra_Basis(X, input_dimension) # + 0.2
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0
@@ -172,10 +172,10 @@ class btnkm:
                 A = tau * (cc + V_temp) + np.kron(
                     lambda_R * np.eye(R), lambda_M * np.eye(I)
                 )
-                #try:
-                 #   WSigma_D[d] = np.linalg.inv(A)
-                #except np.linalg.LinAlgError:
-                WSigma_D[d] = np.linalg.pinv(A)
+                try:
+                   WSigma_D[d] = np.linalg.inv(A)
+                except np.linalg.LinAlgError:
+                    WSigma_D[d] = np.linalg.pinv(A)
 
                 W_D[d] = np.reshape((tau * WSigma_D[d] @ cy), (I, R), order="F")
 
@@ -244,7 +244,7 @@ class btnkm:
             covariance = np.sum(np.sum(hadamard_product_V, axis=1))
             err = ss_error  # + covariance
 
-            if precision_update:
+            if precision_update and it >3:
                 a_N = a0 + (N / 2)
                 b_N = b0 + (0.5 * (ss_error + covariance))
             else:
@@ -278,14 +278,10 @@ class btnkm:
                 np.multiply(c_N, (1 - safelog(d_N) - (d0 / d_N)))
             )  # + np.sum(gammaln(c_N))
 
-            temp5 = sum(
-                np.sum(
-                    gammaln(np.array(g_N))
-                    + np.array(g_N)
-                    * (1 - safelog(np.array(h_N)) - (h0_m / np.array(h_N)))
-                )
-                for d in range(len(g_N))
-            )
+            temp5 = np.sum(
+                np.multiply(g_N, (1 - safelog(h_N) - (h0_m / h_N)))
+            )  # + np.sum(gammaln(g_N))
+
             temp6 = a_N * (1 - safelog(b_N) - (b0 / b_N))  # + gammaln(a_N)
 
             LB[it] = temp1 + temp2 + temp3 + temp4 + temp5 + temp6
@@ -293,55 +289,55 @@ class btnkm:
             rankest = R
 
             # Rank pruning (optional)
-            if it > 0:
-                if prune_rank:
-                    Wall = np.vstack([W for W in W_D])
-                    comPower = np.diag(Wall.T @ Wall)
-                    var_explained = comPower / np.sum(comPower) * 100
-                    rankest = np.sum(var_explained > rank_tol)
-                    if np.max(rankest) == 0:
-                        print("Rank becomes 0 !!!")
-                        break
-                    if R != np.max(rankest):
-                        indices = var_explained > rank_tol
-                        false_indices = np.where(~indices)[0]
-                        lambda_R = np.delete(lambda_R, false_indices)
-                        for d in range(D):
-                            W_D[d] = np.delete(W_D[d], false_indices, axis=1)
-                            ranges = np.r_[
-                                [
-                                    np.arange(
-                                        I * false_indices[i], I * false_indices[i] + I
-                                    )
-                                    for i in range(len(false_indices))
-                                ]
+            
+            if prune_rank:
+                Wall = np.vstack([W for W in W_D])
+                comPower = np.diag(Wall.T @ Wall)
+                var_explained = comPower / np.sum(comPower) * 100
+                rankest = np.sum(var_explained > rank_tol)
+                if np.max(rankest) == 0:
+                    print("Rank becomes 0 !!!")
+                    break
+                if R != np.max(rankest):
+                    indices = var_explained > rank_tol
+                    false_indices = np.where(~indices)[0]
+                    lambda_R = np.delete(lambda_R, false_indices)
+                    for d in range(D):
+                        W_D[d] = np.delete(W_D[d], false_indices, axis=1)
+                        ranges = np.r_[
+                            [
+                                np.arange(
+                                    I * false_indices[i], I * false_indices[i] + I
+                                )
+                                for i in range(len(false_indices))
                             ]
-                            WSigma_D[d] = np.delete(WSigma_D[d], ranges, axis=1)
-                            WSigma_D[d] = np.delete(WSigma_D[d], ranges, axis=0)
+                        ]
+                        WSigma_D[d] = np.delete(WSigma_D[d], ranges, axis=1)
+                        WSigma_D[d] = np.delete(WSigma_D[d], ranges, axis=0)
 
-                        hadamard_product_mean = np.delete(
-                            hadamard_product_mean, false_indices, axis=1
-                        )
+                    hadamard_product_mean = np.delete(
+                        hadamard_product_mean, false_indices, axis=1
+                    )
 
-                        row_indices = {
-                            (r - 1) * R + j
-                            for r in false_indices + 1
-                            for j in range(1, R + 1)
-                        }
-                        col_indices = {
-                            (i - 1) * R + c
-                            for c in false_indices + 1
-                            for i in range(1, R + 1)
-                        }
-                        removed = sorted(row_indices | col_indices)
-                        removed = np.array(sorted(row_indices | col_indices)) - 1
-                        hadamard_product_V = np.delete(
-                            hadamard_product_V, removed, axis=1
-                        )
-                        c0 = c0[:rankest]
-                        d0 = d0[:rankest]
+                    row_indices = {
+                        (r - 1) * R + j
+                        for r in false_indices + 1
+                        for j in range(1, R + 1)
+                    }
+                    col_indices = {
+                        (i - 1) * R + c
+                        for c in false_indices + 1
+                        for i in range(1, R + 1)
+                    }
+                    removed = sorted(row_indices | col_indices)
+                    removed = np.array(sorted(row_indices | col_indices)) - 1
+                    hadamard_product_V = np.delete(
+                        hadamard_product_V, removed, axis=1
+                    )
+                    c0 = c0[:rankest]
+                    d0 = d0[:rankest]
 
-                        R = np.max(rankest)
+                    R = np.max(rankest)
 
             R_values.append(R)
 
@@ -445,7 +441,7 @@ class btnkm:
         # Feature map
         #Phi = pure_power_features_full(features, input_dimension) + 0.2
         #Phi = features_GP(features, input_dimension)+ 0.2
-        Phi = Volterra_Basis(features, input_dimension)
+        Phi = Volterra_Basis(features, input_dimension) #+0.2
 
         # Combine the factor matrices to compute predictions
         W_D_PROD = np.ones(

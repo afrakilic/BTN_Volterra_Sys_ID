@@ -11,17 +11,24 @@ yEst = mat['yEst'].squeeze()
 yVal = mat['yVal'].squeeze()
 
 #Normalize the input and output training data to [0 1]
-u_train = uEst.reshape(-1, 1) #/7
-y_train = yEst#/10 - 0.1
-u_test = uVal.reshape(-1, 1) #/ 7
-y_test = yVal#/10 - 0.1
+u_train = uEst.reshape(-1, 1) 
+y_train = yEst
+u_test = uVal.reshape(-1, 1) 
+y_test = yVal
 
 
-X_mean = u_train.mean(axis=0)
-X_std = u_train.std(axis=0)
-X_std[X_std == 0] = 1
-X_train = (u_train - X_mean) / X_std
-X_test = (u_test - X_mean) / X_std  # Use train stats
+# # Compute min and max from training set
+X_min = u_train.min(axis=0)
+X_max = u_train.max(axis=0)
+
+# Avoid division by zero for constant columns
+range_X = X_max - X_min
+range_X[range_X == 0] = 1  # prevents division by zero
+
+# Scale train and test, overwrite variables
+u_train = (u_train - X_min) / range_X
+u_test  = (u_test - X_min) / range_X
+
 
 y_mean = y_train.mean()
 y_std = y_train.std()
@@ -50,8 +57,7 @@ R, W_D, lambda_M, lambda_R = model.train(
         scale_parameter_lambda_R=d,
         shape_parameter_lambda_M=g,
         scale_parameter_lambda_M=h,
-        max_iter=20,
-        lower_bound_tol=1e-4,
+        max_iter=30,
         precision_update=True,
         lambda_R_update=True,
         lambda_M_update=True,
@@ -75,7 +81,7 @@ plt.ylabel('λ_M Value')
 plt.grid(True, linestyle='--', alpha=0.5)
 plt.show()
 
-prediction_mean_unscaled = prediction_mean[input_dimension:, ] * y_std + y_mean
+prediction_mean_unscaled = prediction_mean[input_dimension:, ]  * y_std + y_mean
 prediction_std_unscaled = prediction_std[input_dimension:, ] * y_std
 
 rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test[input_dimension:, ]) ** 2))
