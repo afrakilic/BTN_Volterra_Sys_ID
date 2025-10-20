@@ -9,54 +9,54 @@ sys.path.append(os.getcwd())
 from config import *  # Import everything from config.py
 from purepowers import btnkm
 
-df = pd.read_csv("/Users/hakilic/Downloads/T-KRR-main-fresh/data/spambase.csv", header=None)
-df.columns = df.iloc[0]
-df = df[1:]
-df.reset_index(drop=True, inplace=True)
+df = pd.read_csv("/Users/hakilic/Downloads/T-KRR-main-fresh/data/yacht.csv", header=None)
+df.columns = df.iloc[0] 
+df = df[1:] 
+df.reset_index(drop=True, inplace=True) 
 df = df.values
 df = df.astype(float)
 
-X = df[:, :57]  # features
-y = df[:, 57]  # target
 
-
-y = np.array(
-    [float(y[0]) if isinstance(y, (list, np.ndarray)) else float(y) for y in y]
-)
-y = np.where(y > 0, 1, -1)
+# Split features and target
+X = df[:, 0:6]  # features
+y = df[:, 6]  # target
 
 # hyper-parameters
-input_dimension = 30
+input_dimension = 20
 max_rank = 25
 
 a, b = 1e-2, 1e-3
-c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
-g, h = 1e-6 * np.ones(input_dimension), 1e-6 * np.ones(input_dimension)
+c, d = 1e-5*np.ones(max_rank), 1e-6*np.ones(max_rank)
+g, h =  1e-6*np.ones(input_dimension), 1e-6*np.ones(input_dimension)
 
-# Store the MSE results
-mse_values = []
+
 R_effective = []
+rmse_values = []
 nll_values = []
 
 # Loop 10 times to run the training and evaluation
-start_time = time.time()
-for i in range(1):
+start_time = time.time() 
+for i in range(10):
     # Split the data
     np.random.seed(i)
-    indices = np.random.permutation(len(X))
+    indices = np.random.permutation(len(X)) 
     split_index = int(0.90 * len(X))  # 90% for training, 10% for testing
     X_train, X_test = X[indices[:split_index]], X[indices[split_index:]]
     y_train, y_test = y[indices[:split_index]], y[indices[split_index:]]
-    # === Normalize X_train column-wise ===
+
     X_mean = X_train.mean(axis=0)
     X_std = X_train.std(axis=0)
     X_std[X_std == 0] = 1
     X_train = (X_train - X_mean) / X_std
     X_test = (X_test - X_mean) / X_std  # Use train stats
 
+    y_mean = y_train.mean()
+    y_std = y_train.std()
+    y_train = (y_train - y_mean) / y_std
+    
     # train the model
-    model = btnkm(X_train.shape[1])
-    R, _, _, _, _, _, _ = model.train(
+    model = btnkm(X_train.shape[1]) 
+    R, _, _, _, _, _, _= model.train(
         features=X_train,
         target=y_train,
         input_dimension=input_dimension,
@@ -72,57 +72,45 @@ for i in range(1):
         lambda_R_update=True,
         lambda_M_update=True,
         plot_results=False,
-        prune_rank=True,
-        classification=True,
+        prune_rank=True
     )
-
+    
     # Predict (mse is returned by the predict function)
-    prediction_mean, prediction_std, mse = model.predict(
+    prediction_mean, prediction_std, _ = model.predict(
         features=X_test,
-        input_dimension=input_dimension,
-        true_values=y_test,
-        classification=True,
+        input_dimension=input_dimension
     )
 
-    mse_values.append(mse)
+    prediction_mean_unscaled = prediction_mean * y_std + y_mean
+    prediction_std_unscaled = prediction_std * y_std
+
+    #nll
+    nll = 0.5 * np.log(2 * np.pi * prediction_std_unscaled**2) + \
+      0.5 * ((y_test - prediction_mean_unscaled)**2) / (prediction_std_unscaled**2)
+    nll_values.append(np.mean(nll))
+
+    #rmse
+    rmse = np.sqrt(np.mean((prediction_mean_unscaled - y_test) ** 2))
+    rmse_values.append(rmse)
+
     R_effective.append(R)
-
-    # NLL
-    probs_gt_zero = norm.sf(0, loc=prediction_mean, scale=prediction_std)  # P(y > 0)
-    y_test_binary = (y_test + 1) // 2
-    eps = 1e-15
-    y_pred_prob = np.clip(probs_gt_zero, eps, 1 - eps)
-    nll = -np.mean(
-        y_test_binary * np.log(y_pred_prob)
-        + (1 - y_test_binary) * np.log(1 - y_pred_prob)
-    )
-    nll_values.append(nll)
-
-
+ 
+    
 end_time = time.time()
 
-
 total_runtime_seconds = end_time - start_time
+effective_r = np.mean(R_effective)
+effective_r_std = np.std(R_effective)
+
 print(f"Total runtime for 10 runs: {total_runtime_seconds:.2f} seconds")
+print(f"Mean RMSE: {np.mean(rmse_values)}, Standard Deviation of RMSE: {np.std(rmse_values)}")
+print(f"Mean NLL : {np.mean(nll_values)}, Standard Deviation of NLL: {np.std(nll_values)}")
+print(f"Effective R: {effective_r}, std: {effective_r_std}")
 
-
-mean_mse, std_mse = np.mean(mse_values), np.std(mse_values)
-effective_r, effective_r_std = np.mean(R_effective), np.std(R_effective)
-mean_nll, std_nll = np.mean(nll_values), np.std(nll_values)
-
-
-print(
-    f"Mean Missclassication: {mean_mse}, Standard Deviation of Missclassication: {std_mse}"
-)
-print(f"Mean Effective R: {effective_r}, std: {effective_r_std}")
-print(f"Mean NLL: {mean_nll}, std_nll: {std_nll} ")
-
-
-# REPORTED
-
-# input_dimension = 30
-# # max_rank = 25
-# Total runtime for 10 runs: 3785.66 seconds
-# Mean Missclassication: 0.07462039045553145, Standard Deviation of Missclassication: 0.014718607768926126
-# Mean Effective R: 8.6, std: 1.2
-# Mean NLL: 0.4991748394689689, std_nll: 0.04722475764046458
+#REPORTED   
+# input_dimension = 10
+# max_rank = 50
+# Total runtime for 10 runs: 31.46 seconds
+# Mean RMSE: 0.3788425360763594, Standard Deviation of RMSE: 0.13204394531352737
+# Mean NLL : 0.597504099882318, Standard Deviation of NLL: 0.7815140280185505
+# Effective R: 5.2, std: 0.6
