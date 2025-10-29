@@ -1,43 +1,26 @@
-import scipy.io
-from lagfeatures import lagfeatures
 from config import *  # Import everything from config.py
 from volterra_BTN import btnkm
-# Replace 'your_file.mat' with the path to your .mat file
-mat = scipy.io.loadmat('/Users/hakilic/Downloads/Tensor-Network-B-splines-master/Cascaded/dataBenchmark.mat')
 
-uEst = mat['uEst'].squeeze()
-uVal = mat['uVal'].squeeze()
-yEst = mat['yEst'].squeeze()
-yVal = mat['yVal'].squeeze()
+# Load .mat file
+data = scipy.io.loadmat('/Users/hakilic/Downloads/Tensor-Network-B-splines-master/Cascaded/dataBenchmark.mat')
 
-#Normalize the input and output training data to [0 1]
-u_train = uEst.reshape(-1, 1) 
-y_train = yEst
-u_test = uVal.reshape(-1, 1) 
-y_test = yVal
+# Extract and reshape
+u_train, y_train = data['uEst'].squeeze()[:, None], data['yEst'].squeeze()
+u_test, y_test   = data['uVal'].squeeze()[:, None], data['yVal'].squeeze()
 
-
-# # Compute min and max from training set
-X_min = u_train.min(axis=0)
-X_max = u_train.max(axis=0)
-
-# Avoid division by zero for constant columns
-range_X = X_max - X_min
-range_X[range_X == 0] = 1  # prevents division by zero
-
-# Scale train and test, overwrite variables
+# Normalize inputs to [0, 1]
+X_min, X_max = u_train.min(axis=0), u_train.max(axis=0)
+range_X = np.where(X_max - X_min == 0, 1, X_max - X_min)  # prevent div by zero
 u_train = (u_train - X_min) / range_X
-u_test  = (u_test - X_min) / range_X
-
+u_test  = (u_test  - X_min) / range_X
 
 y_mean = y_train.mean()
 y_std = y_train.std()
 y_train = (y_train - y_mean) / y_std
 
-
 # hyper-parameters
 input_dimension = 100
-max_rank = 48
+max_rank = 20
 Kernel_Degree = 3
 
 a, b = 1e-3, 1e-3
@@ -57,7 +40,7 @@ R, W_D, lambda_M, lambda_R = model.train(
         scale_parameter_lambda_R=d,
         shape_parameter_lambda_M=g,
         scale_parameter_lambda_M=h,
-        max_iter=25,
+        max_iter=50,
         precision_update=True,
         lambda_R_update=True,
         lambda_M_update=True,
@@ -95,34 +78,58 @@ nll = 0.5 * np.log(2 * np.pi * prediction_std_unscaled**2) + 0.5 * (
 nll = np.mean(nll)
 
 print(nll)
-# Create a time vector for plotting
-time_steps = np.arange(len(y_test[input_dimension:, ]))
 
+
+# Load BMALS results obtained from the MATLAB script
+
+bmals_df = pd.read_csv('/Users/hakilic/Desktop/IFAC/IFAC/BMVALS_results.csv', header=None)
+bmals_df.columns = ['y_true', 'y_pred', 'confidence_std']
+
+y_true_bmals = bmals_df['y_true'].values
+y_pred_bmals = bmals_df['y_pred'].values
+conf_std_bmals = bmals_df['confidence_std'].values
+
+time_steps_btn = np.arange(len(y_test[input_dimension:]))
+time_steps_bmals = np.arange(len(y_true_bmals))
+
+
+# Figure 1: Volterra BTN
+# -------------------------------
 plt.figure(figsize=(14, 6))
-
-# Plot actual test values
-plt.plot(time_steps, y_test[input_dimension:, ], label='Actual Output (y_test)', color='blue', linewidth=2)
-
-# Plot predicted values
-plt.plot(time_steps, prediction_mean_unscaled, label='Predicted Output', color='orange', linewidth=2)
-
-# Optionally, add confidence intervals (±1 std)
+plt.plot(time_steps_btn, y_test[input_dimension:], color='black', linestyle='-', linewidth=1.8, label='Actual Output')
+plt.plot(time_steps_btn, prediction_mean_unscaled, color='black', linestyle='--', linewidth=1.8, label='Volterra BTN Prediction')
 plt.fill_between(
-    time_steps,
-    prediction_mean_unscaled - 3* prediction_std_unscaled,
+    time_steps_btn,
+    prediction_mean_unscaled - 3*prediction_std_unscaled,
     prediction_mean_unscaled + 3*prediction_std_unscaled,
-    color='orange',
-    alpha=0.2,
-    label='Prediction ±3 std'
+    color='gray', alpha=0.2, label='Prediction ±3 std'
 )
-
-# Styling
-plt.xlabel('Time Step', fontsize=12)
-plt.ylabel('Output', fontsize=12)
-plt.title('Test Output vs Predictions', fontsize=14)
-plt.legend()
-plt.grid(True, linestyle='--', alpha=0.7)
+plt.title('Volterra BTN')
+plt.xlabel('Time Step')
+plt.ylabel('Output')
+plt.ylim([-2.5, 15])  # same y-axis
+plt.legend(frameon=False)
+plt.tick_params(direction='in', length=4)
 plt.tight_layout()
+plt.show()
 
-# Show plot
+
+# Figure 2: BMALS
+# -------------------------------
+plt.figure(figsize=(14, 6))
+plt.plot(time_steps_bmals, y_true_bmals, color='black', linestyle='-', linewidth=1.8, label='Actual Output')
+plt.plot(time_steps_bmals, y_pred_bmals, color='black', linestyle='--', linewidth=1.8, label='BMALS Prediction')
+plt.fill_between(
+    time_steps_bmals,
+    y_pred_bmals - 3*conf_std_bmals,
+    y_pred_bmals + 3*conf_std_bmals,
+    color='gray', alpha=0.2, label='Prediction ±3 std'
+)
+plt.title('BMVALS')
+plt.xlabel('Time Step')
+plt.ylabel('Output')
+plt.ylim([-2.5, 15])  # same y-axis
+plt.legend(frameon=False)
+plt.tick_params(direction='in', length=4)
+plt.tight_layout()
 plt.show()
