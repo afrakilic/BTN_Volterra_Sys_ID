@@ -37,12 +37,12 @@ y_train = (y_train - y_mean) / y_std
 
 # hyper-parameters
 input_dimension = 100
-max_rank = 20
+max_rank = 48
 Kernel_Degree = 3
 
-a, b = 1e-4, 1e-3
+a, b = 1e-3, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
-g, h = 1e-5 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
+g, h = 1e-6 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
 
 model = btnkm(Kernel_Degree)
 R, W_D, lambda_M, lambda_R = model.train(
@@ -57,7 +57,7 @@ R, W_D, lambda_M, lambda_R = model.train(
         scale_parameter_lambda_R=d,
         shape_parameter_lambda_M=g,
         scale_parameter_lambda_M=h,
-        max_iter=30,
+        max_iter=25,
         precision_update=True,
         lambda_R_update=True,
         lambda_M_update=True,

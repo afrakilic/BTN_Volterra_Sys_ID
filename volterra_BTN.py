@@ -27,8 +27,6 @@ import os, sys
 sys.path.append(os.getcwd())
 from utils import (
     safelog,
-    pure_power_features_full,
-    features_GP,
     dotkron,
     temp,
     columnwise_kronecker,
@@ -120,14 +118,11 @@ class btnkm:
 
         # initialize the factor matrices
         W_D = [np.random.randn(I, R) for _ in range(D)]  #  IXR
-        W_D = [(W - W.mean()) / (W.std() if W.std() != 0 else 1) for W in W_D]
         # Initialize the covariance matrices
         WSigma_D = [0.1 * np.kron(np.eye(R), np.eye(I)) for d in range(D)]
 
         # Feature map
-        #Phi = pure_power_features_full(X, input_dimension) + 0.2
-        #Phi = features_GP(X, input_dimension)  +0.2
-        Phi = Volterra_Basis(X, input_dimension) # + 0.2
+        Phi = Volterra_Basis(X, input_dimension) 
 
         LB = np.zeros(max_iter)  # lowerbound
         LBRelChan = 0
@@ -145,6 +140,9 @@ class btnkm:
 
         # MODEL LEARNING
         # FACTOR MATRICES UPDATE
+
+
+        start_time = time.time() 
         for it in pbar:
 
             for d in range(D):  # update the posterior q(vec(W^d)):
@@ -244,12 +242,10 @@ class btnkm:
             covariance = np.sum(np.sum(hadamard_product_V, axis=1))
             err = ss_error  # + covariance
 
-            if precision_update and it >3:
-                a_N = a0 + (N / 2)
-                b_N = b0 + (0.5 * (ss_error + covariance))
-            else:
-                a_N = a0
-                b_N = b0
+            
+        
+            a_N = a0
+            b_N = b0
 
             tau = a_N / b_N
 
@@ -375,6 +371,14 @@ class btnkm:
             ]
         )
         M_mean, M_std = np.mean(M), np.std(M)
+
+        if precision_update:
+                a_N = a0 + (N / 2)
+                b_N = b0 + (0.5 * (ss_error + covariance))
+        
+        end_time = time.time()  
+        total_time = end_time - start_time
+        print(f"Total run time: {total_time:.2f} seconds")
         # Store the estimated parameters for predictionen
         self.W_D = W_D
         self.V = WSigma_D
@@ -439,9 +443,7 @@ class btnkm:
             )
 
         # Feature map
-        #Phi = pure_power_features_full(features, input_dimension) + 0.2
-        #Phi = features_GP(features, input_dimension)+ 0.2
-        Phi = Volterra_Basis(features, input_dimension) #+0.2
+        Phi = Volterra_Basis(features, input_dimension) 
 
         # Combine the factor matrices to compute predictions
         W_D_PROD = np.ones(
@@ -475,7 +477,6 @@ class btnkm:
 
         
         S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + sum_matrix)
-        #S = (2 * self.a / (2 * self.a - 2)) * (self.b / self.a) * sum_matrix
 
 
         std_dev = np.sqrt(np.diag(S))  # Standard deviation for each prediction
