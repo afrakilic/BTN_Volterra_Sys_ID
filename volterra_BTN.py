@@ -411,7 +411,7 @@ class btnkm:
             plt.tight_layout()
             plt.show()
 
-        return R, W_D, lambda_M, lambda_R
+        return R, W_D, lambda_M, lambda_R, total_time
 
     def predict(
         self,
@@ -456,8 +456,6 @@ class btnkm:
 
         predictions = np.sum(W_D_PROD, axis=1)  # Mean predictions
  
-    
-        # self.V = [V / (np.trace(V) if np.trace(V) != 0 else 1.0) for V in self.V]
         # Uncertainty quantification
         N = features.shape[0]
         R = self.W_D[0].shape[1]
