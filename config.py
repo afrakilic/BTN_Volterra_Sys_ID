@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 # === Visualization Libraries ===
 import seaborn as sns
 from matplotlib.colors import LogNorm
+import matplotlib.ticker as ticker 
 from tqdm import tqdm, trange
 
 # === Scikit-Learn Utilities ===

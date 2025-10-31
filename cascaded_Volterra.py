@@ -29,6 +29,7 @@ g, h = 1e-6 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
 
 rmse_list, nll_list, total_time_list = [], [], []
 
+#Model Learning
 for seed in range(10):
     print(f"\n===== Running Volterra BTN (seed={seed}) =====")
     model = btnkm(Kernel_Degree)
@@ -49,19 +50,12 @@ for seed in range(10):
         seed=seed,
         precision_update=True,
         lambda_R_update=True,
-        lambda_M_update=True,
+        lambda_M_update= True,
         plot_results=False, 
         prune_rank=True,
     )
 
-    plt.figure(figsize=(8, 5))
-    plt.plot(lambda_M, marker='o', linestyle='-', alpha=0.8)
-    plt.title('Ordered λ_M Values')
-    plt.xlabel('Sample Index (sorted)')
-    plt.ylabel('λ_M Value')
-    plt.grid(True, linestyle='--', alpha=0.5)
-    plt.show()
-
+    
     prediction_mean, prediction_std, _ = model.predict(features=u_test, input_dimension=input_dimension)
 
     # Unscale predictions
@@ -81,35 +75,73 @@ for seed in range(10):
     nll_list.append(nll)
     total_time_list.append(total_time)
 
+    if seed == 2:
 
-    num_degrees = len(W_D)
-    fig, axes = plt.subplots(1, num_degrees, figsize=(4*num_degrees, 4), sharey=True)
+        #Plot Delta Values
+        plt.figure(figsize=(8, 5))
+        plt.plot(lambda_M, marker='o', linestyle='-', alpha=0.8)
+        plt.title('Ordered Delta Values')
+        plt.xlabel('Sample Index (sorted)')
+        plt.ylabel('Delta Value')
+        plt.grid(True, linestyle='--', alpha=0.5)
+        plt.show()
 
-    # Handle the case where num_degrees == 1
-    if num_degrees == 1:
-        axes = [axes]
+        num_degrees = len(W_D)
+        fig, axes = plt.subplots(1, num_degrees, figsize=(2 * num_degrees, 2.5), sharey=True)
 
-    for deg_idx, (W, ax) in enumerate(zip(W_D, axes)):
-        R = W.shape[1]
-        for r in range(R):
-            ax.plot(
-                np.abs(W[:, r]),
-                linewidth=1.5,
-                label=f'Comp {r+1}',
-                alpha=0.8
-            )
-        ax.set_title(f'Degree {deg_idx+1}')
-        ax.grid(True, linestyle='--', alpha=0.4)
-        ax.set_xlabel('Input Dimension Index')
-        if deg_idx == 0:
-            ax.set_ylabel('Weight Value')
-        if deg_idx == num_degrees - 1:
-            ax.legend(frameon=False, bbox_to_anchor=(1.05, 1), loc='upper left')
+        if num_degrees == 1:
+            axes = [axes]
 
-    plt.suptitle('All R Components for Each W_D (seed=0)', y=1.05)
-    plt.tight_layout()
+        for deg_idx, (W, ax) in enumerate(zip(W_D, axes)):
+            R = W.shape[1]
+            for r in range(R):
+                ax.plot(
+                    np.abs(W[:, r]),
+                    linewidth=3,
+                    label=f'Comp {r+1}',
+                    alpha=0.8
+                )
+
+            # Format y-axis to always show 1.0-style floats
+            ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
+
+            # Make tick labels larger
+            ax.tick_params(axis='both', which='major', labelsize=11)
+            ax.tick_params(axis='both', which='minor', labelsize=10)
+
+            if deg_idx == 0:
+                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{on}$)', fontsize=12)
+
+        # Shared X label for entire figure
+        try:
+            fig.supxlabel('Memory', fontsize=15)
+        except AttributeError:
+            fig.text(0.5, 0.04, 'Memory', ha='center', va='center', fontsize=15)
+
+        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        plt.savefig('/Users/hakilic/Desktop/weights.pdf', format='pdf', bbox_inches='tight')
+
+        # --- Separate horizontal legend ---
+        handles, labels = axes[-1].get_legend_handles_labels()
+
+        legend_fig = plt.figure(figsize=(6, 0.6))
+        legend = legend_fig.legend(
+            handles,
+            labels,
+            loc='center',
+            ncol=len(labels),
+            frameon=False,
+            fontsize=13
+        )
+
+        legend_fig.canvas.draw()
+        legend_fig.savefig('/Users/hakilic/Desktop/weights_legend.pdf', format='pdf', bbox_inches='tight')
+        plt.close(legend_fig)
+
+
+
     # Plot only for the first run
-    if seed == 0:
+    if seed == 2:
         time_steps = np.arange(len(y_true_unscaled))
         plt.figure(figsize=(8, 4))
 
@@ -130,30 +162,6 @@ for seed in range(10):
         plt.savefig('/Users/hakilic/Desktop/BTN_Volterra_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
         plt.show()
     
-    
-
-
-# --- Your main plot code ---
-time_steps = np.arange(len(y_true_unscaled))
-plt.figure(figsize=(8, 4))
-plt.plot(time_steps, y_true_unscaled, color='black', linestyle='-', linewidth=1.8, label='Actual Output')
-plt.plot(time_steps, prediction_mean_unscaled, color='black', linestyle='--', linewidth=1.8, label='Volterra BTN Prediction')
-plt.fill_between(
-    time_steps,
-    prediction_mean_unscaled - 3 * prediction_std_unscaled,
-    prediction_mean_unscaled + 3 * prediction_std_unscaled,
-    color='gray', alpha=0.2, label='Prediction ±3 std'
-)
-
-plt.title('Volterra BTN', fontsize=24)
-plt.ylabel('Validation Output', fontsize=22)
-plt.ylim([0, 11.5])
-plt.tick_params(direction='in', length=4, labelsize=20)
-plt.tight_layout()
-
-plt.savefig('/Users/hakilic/Desktop/BTN_Volterra_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
-plt.show()        
-
 
 # Compute Mean & Std over 10 runs
 rmse_mean, rmse_std = np.mean(rmse_list), np.std(rmse_list)
@@ -171,14 +179,14 @@ results = pd.DataFrame({
     'Total_Time_std':[time_std, None]
 })
 
+########################################################################################################################
 
 # BMALS (BMVALS) Evaluation — Multiple Runs
-# ============================================================
 bmals_path = '/Users/hakilic/Desktop/IFAC/IFAC/BMVALS_all_runs.csv'
 bmals_df = pd.read_csv(bmals_path)
 bmals_df.columns = ['run_index', 'y_pred', 'variance']
 
-y_true_bmals = y_test[input_dimension-1:]
+y_true_bmals = y_test[input_dimension:]
 
 rmse_bmals_list, nll_bmals_list = [], []
 
@@ -198,8 +206,7 @@ for run in np.unique(bmals_df['run_index']):
     rmse_bmals_list.append(rmse_run)
     nll_bmals_list.append(nll_run)
 
-    # Plot only first run (to match BTN)
-    if run == 1:
+    if run == 2:
         time_steps = np.arange(len(y_true_bmals))
         plt.figure(figsize=(8, 4))
         plt.plot(time_steps, y_true_bmals, color='black', linestyle='-', linewidth=1.8, label='Actual Output')
@@ -220,16 +227,14 @@ for run in np.unique(bmals_df['run_index']):
         plt.savefig('/Users/hakilic/Desktop/BMVAL_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
         plt.show()
 
-# Compute mean ± std for BMALS
 rmse_bmals_mean, rmse_bmals_std = np.mean(rmse_bmals_list), np.std(rmse_bmals_list)
 nll_bmals_mean, nll_bmals_std = np.mean(nll_bmals_list), np.std(nll_bmals_list)
 
-# Update results table
 results.loc[1, ['RMSE_mean', 'RMSE_std', 'NLL_mean', 'NLL_std']] = [
     rmse_bmals_mean, rmse_bmals_std, nll_bmals_mean, nll_bmals_std
 ]
 
-# Round and print comparison
+# Results
 results = results.round(5)
 print("\n================ Performance Comparison over 10 Runs ================\n")
 print(results.to_string(index=False))
