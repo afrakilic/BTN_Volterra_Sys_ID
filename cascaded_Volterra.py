@@ -102,17 +102,15 @@ for seed in range(10):
                     alpha=0.8
                 )
 
-            # Format y-axis to always show 1.0-style floats
-            ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
 
-            # Make tick labels larger
+            ax.set_title(f'Mode {deg_idx + 1}', fontsize=13, fontweight='bold')
+            ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
             ax.tick_params(axis='both', which='major', labelsize=11)
             ax.tick_params(axis='both', which='minor', labelsize=10)
 
             if deg_idx == 0:
-                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{on}$)', fontsize=12)
+                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{off}$)', fontsize=12)
 
-        # Shared X label for entire figure
         try:
             fig.supxlabel('Memory', fontsize=15)
         except AttributeError:
@@ -121,7 +119,6 @@ for seed in range(10):
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.savefig('/Users/hakilic/Desktop/weights.pdf', format='pdf', bbox_inches='tight')
 
-        # --- Separate horizontal legend ---
         handles, labels = axes[-1].get_legend_handles_labels()
 
         legend_fig = plt.figure(figsize=(6, 0.6))
