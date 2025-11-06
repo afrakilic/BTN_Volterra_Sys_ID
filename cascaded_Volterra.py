@@ -27,7 +27,7 @@ a, b = 1e-3, 1e-3
 c, d = 1e-5 * np.ones(max_rank), 1e-6 * np.ones(max_rank)
 g, h = 1e-6 * np.ones(input_dimension+1), 1e-6 * np.ones(input_dimension+1)
 
-rmse_list, nll_list, total_time_list = [], [], []
+rmse_list, nll_list, total_time_list, rank_list = [], [], [], []
 
 #Model Learning
 for seed in range(10):
@@ -74,6 +74,7 @@ for seed in range(10):
     rmse_list.append(rmse)
     nll_list.append(nll)
     total_time_list.append(total_time)
+    rank_list.append(R)
 
     if seed == 2:
 
@@ -103,18 +104,18 @@ for seed in range(10):
                 )
 
 
-            ax.set_title(f'Mode {deg_idx + 1}', fontsize=13, fontweight='bold')
+            #ax.set_title(f'Mode {deg_idx + 1}', fontsize=13, fontweight='bold')
             ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
             ax.tick_params(axis='both', which='major', labelsize=11)
             ax.tick_params(axis='both', which='minor', labelsize=10)
 
             if deg_idx == 0:
-                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{off}$)', fontsize=12)
+                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{on}$)', fontsize=12)
 
         try:
-            fig.supxlabel('Memory', fontsize=15)
+            fig.supxlabel('Memory (Lags)', fontsize=12)
         except AttributeError:
-            fig.text(0.5, 0.04, 'Memory', ha='center', va='center', fontsize=15)
+            fig.text(0.5, 0.04, 'Memory (Lags)', ha='center', va='center', fontsize=12)
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.savefig('/Users/hakilic/Desktop/weights.pdf', format='pdf', bbox_inches='tight')
@@ -164,6 +165,7 @@ for seed in range(10):
 rmse_mean, rmse_std = np.mean(rmse_list), np.std(rmse_list)
 nll_mean, nll_std   = np.mean(nll_list), np.std(nll_list)
 time_mean, time_std = np.mean(total_time_list), np.std(total_time_list)
+R_mean, R_std = np.mean(rank_list), np.std(rank_list)
 
 # Results Table
 results = pd.DataFrame({
@@ -173,7 +175,9 @@ results = pd.DataFrame({
     'NLL_mean': [nll_mean, None],
     'NLL_std': [nll_std, None], 
     'Total_Time_mean': [time_mean, None],
-    'Total_Time_std':[time_std, None]
+    'Total_Time_std':[time_std, None],
+    'R_mean': [R_mean, None],
+    'R_std': [R_std, None]
 })
 
 ########################################################################################################################
@@ -218,6 +222,7 @@ for run in np.unique(bmals_df['run_index']):
         plt.xlabel('Time', fontsize=22)
         plt.ylabel('Validation Output',  fontsize=22)
         plt.ylim([0, 11.5])
+        plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         plt.tick_params(direction='in', length=4, labelsize=20)
         plt.tight_layout()
 

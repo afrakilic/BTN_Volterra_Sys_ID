@@ -9,7 +9,7 @@ import seaborn as sns
 from matplotlib.colors import LogNorm
 import matplotlib.ticker as ticker 
 from tqdm import tqdm, trange
-
+from matplotlib.ticker import FormatStrFormatter
 # === Scikit-Learn Utilities ===
 from sklearn.metrics import accuracy_score
 from sklearn.impute import SimpleImputer
