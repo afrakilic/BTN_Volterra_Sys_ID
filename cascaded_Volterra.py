@@ -88,7 +88,7 @@ for seed in range(10):
         plt.show()
 
         num_degrees = len(W_D)
-        fig, axes = plt.subplots(1, num_degrees, figsize=(2 * num_degrees, 2.5), sharey=True)
+        fig, axes = plt.subplots(1, num_degrees, figsize=(2 * num_degrees, 2), sharey=True)
 
         if num_degrees == 1:
             axes = [axes]
@@ -96,21 +96,22 @@ for seed in range(10):
         for deg_idx, (W, ax) in enumerate(zip(W_D, axes)):
             R = W.shape[1]
             for r in range(R):
+                linestyle = '--' if r == 1 else '-'  # make the 2nd component dashed
                 ax.plot(
                     np.abs(W[:, r]),
                     linewidth=3,
+                    linestyle=linestyle,
                     label=f'Comp {r+1}',
                     alpha=0.8
                 )
 
-
-            #ax.set_title(f'Mode {deg_idx + 1}', fontsize=13, fontweight='bold')
+            ax.set_title(f'Mode {deg_idx + 1}', fontsize=13, fontweight='bold')
             ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%.1f'))
             ax.tick_params(axis='both', which='major', labelsize=11)
             ax.tick_params(axis='both', which='minor', labelsize=10)
 
             if deg_idx == 0:
-                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{on}$)', fontsize=12)
+                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{off}$)', fontsize=12)
 
         try:
             fig.supxlabel('Memory (Lags)', fontsize=12)
@@ -138,6 +139,7 @@ for seed in range(10):
 
 
 
+
     # Plot only for the first run
     if seed == 2:
         time_steps = np.arange(len(y_true_unscaled))
@@ -152,7 +154,7 @@ for seed in range(10):
             color='gray', alpha=0.2, label='Prediction ±3 std'
         )
 
-        plt.title('Volterra BTN', fontsize=24)
+        plt.title('BTN-V', fontsize=24)
         plt.ylabel('Validation Output', fontsize=22)
         plt.ylim([0, 11.5])
         plt.tick_params(direction='in', length=4, labelsize=20)
