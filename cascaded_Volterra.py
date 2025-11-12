@@ -34,7 +34,7 @@ for seed in range(10):
     print(f"\n===== Running Volterra BTN (seed={seed}) =====")
     model = btnkm(Kernel_Degree)
     
-    R, W_D, lambda_M, lambda_R, total_time = model.train(
+    R, W_D, delta, lambda_R, total_time = model.train(
         features=u_train,
         target=y_train,
         input_dimension=input_dimension,
@@ -44,13 +44,13 @@ for seed in range(10):
         scale_parameter_tau=b,
         shape_parameter_lambda_R=c,
         scale_parameter_lambda_R=d,
-        shape_parameter_lambda_M=g,
-        scale_parameter_lambda_M=h,
+        shape_parameter_delta=g,
+        scale_parameter_delta=h,
         max_iter=25,
         seed=seed,
         precision_update=True,
         lambda_R_update=True,
-        lambda_M_update= True,
+        delta_update= True,
         plot_results=False, 
         prune_rank=True,
     )
@@ -80,7 +80,7 @@ for seed in range(10):
 
         #Plot Delta Values
         plt.figure(figsize=(8, 5))
-        plt.plot(lambda_M, marker='o', linestyle='-', alpha=0.8)
+        plt.plot(delta, marker='o', linestyle='-', alpha=0.8)
         plt.title('Ordered Delta Values')
         plt.xlabel('Sample Index (sorted)')
         plt.ylabel('Delta Value')
@@ -96,7 +96,7 @@ for seed in range(10):
         for deg_idx, (W, ax) in enumerate(zip(W_D, axes)):
             R = W.shape[1]
             for r in range(R):
-                linestyle = '--' if r == 1 else '-'  # make the 2nd component dashed
+                linestyle = '--' if r == 1 else '-' 
                 ax.plot(
                     np.abs(W[:, r]),
                     linewidth=3,
