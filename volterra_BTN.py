@@ -15,7 +15,7 @@ The training procedure involves:
 - Initializing factor matrices for the model's latent variables,
 - Iteratively updating the factor matrices, noise precision (tau), and regularization parameters (lambda),
 - Optionally pruning the rank of the model, and
-- Computing a lower bound (LB) and fit metric (R-squared) to assess convergence.
+- Computing a lower bound (LB) to assess convergence.
 
 The model is trained using input-output data, and once trained, it can make predictions on new data, providing not only the predicted output but also the uncertainty associated with the predictions.
 
@@ -242,7 +242,6 @@ class btnkm:
             covariance = np.sum(np.sum(hadamard_product_V, axis=1))
             err = ss_error  # + covariance
 
-            
         
             a_N = a0
             b_N = b0
@@ -359,19 +358,6 @@ class btnkm:
                     print("======= Converged =======")
                     break
 
-        M = np.array(
-            [
-                np.sum(
-                    (np.diag(W_D[d] @ W_D[d].T) / np.sum(np.diag(W_D[d] @ W_D[d].T)))
-                    * 100
-                    >= 0.25
-                    # (1 / np.array(delta[d]))/np.sum(1 / np.array(delta[d]))*100 >= 0.5
-                )
-                for d in range(D)
-            ]
-        )
-        M_mean, M_std = np.mean(M), np.std(M)
-
         if precision_update:
                 a_N = a0 + (N / 2)
                 b_N = b0 + (0.5 * (ss_error + covariance))
@@ -379,6 +365,7 @@ class btnkm:
         end_time = time.time()  
         total_time = end_time - start_time
         print(f"Total run time: {total_time:.2f} seconds")
+        
         # Store the estimated parameters for predictionen
         self.W_D = W_D
         self.V = WSigma_D
