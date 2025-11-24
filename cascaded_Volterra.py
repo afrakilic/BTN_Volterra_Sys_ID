@@ -111,7 +111,7 @@ for seed in range(10):
             ax.tick_params(axis='both', which='minor', labelsize=10)
 
             if deg_idx == 0:
-                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{off}$)', fontsize=12)
+                ax.set_ylabel(r'Weights ($\mathbf{\delta}: \mathrm{on}$)', fontsize=12)
 
         try:
             fig.supxlabel('Memory (Lags)', fontsize=12)
