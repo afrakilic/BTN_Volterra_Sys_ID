@@ -2,7 +2,7 @@ from config import *  # Import everything from config.py
 from volterra_BTN import btnkm
 
 # Load .mat file
-data = scipy.io.loadmat('/Users/hakilic/Downloads/Tensor-Network-B-splines-master/Cascaded/dataBenchmark.mat')
+data = scipy.io.loadmat('dataBenchmark.mat')
 
 # Extract and reshape
 u_train, y_train = data['uEst'].squeeze()[:, None], data['yEst'].squeeze()
@@ -119,7 +119,7 @@ for seed in range(10):
             fig.text(0.5, 0.04, 'Memory (Lags)', ha='center', va='center', fontsize=12)
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
-        plt.savefig('/Users/hakilic/Desktop/weights.pdf', format='pdf', bbox_inches='tight')
+        #plt.savefig('weights.pdf', format='pdf', bbox_inches='tight')
 
         handles, labels = axes[-1].get_legend_handles_labels()
 
@@ -134,7 +134,7 @@ for seed in range(10):
         )
 
         legend_fig.canvas.draw()
-        legend_fig.savefig('/Users/hakilic/Desktop/weights_legend.pdf', format='pdf', bbox_inches='tight')
+        #legend_fig.savefig('weights_legend.pdf', format='pdf', bbox_inches='tight')
         plt.close(legend_fig)
 
 
@@ -159,7 +159,7 @@ for seed in range(10):
         plt.ylim([0, 11.5])
         plt.tick_params(direction='in', length=4, labelsize=20)
         plt.tight_layout()
-        plt.savefig('/Users/hakilic/Desktop/BTN_Volterra_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
+        #plt.savefig('BTN_Volterra_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
         plt.show()
     
 
@@ -185,7 +185,7 @@ results = pd.DataFrame({
 ########################################################################################################################
 
 # BMALS (BMVALS) Evaluation — Multiple Runs
-bmals_path = '/Users/hakilic/Desktop/IFAC/IFAC/BMVALS_all_runs.csv'
+bmals_path = 'BMVALS_all_runs.csv'
 bmals_df = pd.read_csv(bmals_path)
 bmals_df.columns = ['run_index', 'y_pred', 'variance']
 
@@ -227,8 +227,7 @@ for run in np.unique(bmals_df['run_index']):
         plt.gca().yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
         plt.tick_params(direction='in', length=4, labelsize=20)
         plt.tight_layout()
-
-        plt.savefig('/Users/hakilic/Desktop/BMVAL_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
+        #plt.savefig('BMVAL_confidence_bounds.pdf', format='pdf', bbox_inches='tight')
         plt.show()
 
 rmse_bmals_mean, rmse_bmals_std = np.mean(rmse_bmals_list), np.std(rmse_bmals_list)
