@@ -27,7 +27,7 @@ If you find the paper or this repository helpful in your publications, please co
 
 
 
-Make sure you have Python **3.10.16** installed.
+Make sure you have Python **3.11.13** installed.
 
 Install dependencies:
 
