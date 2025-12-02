@@ -17,7 +17,14 @@ This work introduces Bayesian Tensor Network Volterra kernel machines (BTN-V), e
 If you find the paper or this repository helpful in your publications, please consider citing it.
 
 ```bibtex
-@misc{, 
+@misc{kilic2025fullyprobabilistictensornetwork,
+      title={A Fully Probabilistic Tensor Network for Regularized Volterra System Identification}, 
+      author={Afra Kilic and Kim Batselier},
+      year={2025},
+      eprint={2511.20457},
+      archivePrefix={arXiv},
+      primaryClass={stat.ML},
+      url={https://arxiv.org/abs/2511.20457}, 
 }
 ```
 
