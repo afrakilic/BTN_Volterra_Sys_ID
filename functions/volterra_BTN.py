@@ -25,7 +25,7 @@ Dependencies and configurations are centralized in `config.py`.
 import os, sys
 
 sys.path.append(os.getcwd())
-from utils import (
+from functions.utils import (
     safelog,
     dotkron,
     temp,
@@ -35,7 +35,7 @@ from utils import (
     Volterra_Basis
 )
 
-from config import *  # Import everything from config.py
+from functions.config import *  # Import everything from config.py
 
 
 class btnkm:

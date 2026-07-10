@@ -1,8 +1,8 @@
-from config import *  # Import everything from config.py
-from volterra_BTN import btnkm
+from functions.config import *  # Import everything from config.py
+from functions.volterra_BTN import btnkm
 
 # Load .mat file
-data = scipy.io.loadmat('dataBenchmark.mat')
+data = scipy.io.loadmat('datasets/dataBenchmark.mat')
 
 # Extract and reshape
 u_train, y_train = data['uEst'].squeeze()[:, None], data['yEst'].squeeze()
@@ -185,7 +185,7 @@ results = pd.DataFrame({
 ########################################################################################################################
 
 # BMALS (BMVALS) Evaluation — Multiple Runs
-bmals_path = 'BMVALS_all_runs.csv'
+bmals_path = 'datasets/BMVALS_all_runs.csv'
 bmals_df = pd.read_csv(bmals_path)
 bmals_df.columns = ['run_index', 'y_pred', 'variance']
 
