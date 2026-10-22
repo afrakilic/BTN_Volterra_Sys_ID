@@ -2,66 +2,82 @@
 
 [![Source Code License](https://img.shields.io/badge/license-GPL-blueviolet)](https://github.com/afrakilic/BTN_Volterra_Sys_ID/blob/main/LICENSE)
 
+Code for the paper [A Fully Probabilistic Tensor Network for Regularized Volterra System Identification](https://arxiv.org/abs/2511.20457) (submitted to [IFAC 2026](https://ifac2026.org/)).
 
-This repository contains the source code used to produce the results obtained in A Fully Probabilistic Tensor Network for Regularized Volterra System Identification submitted to [International Federation of Automatic Control (IFAC) 2026](https://ifac2026.org/). This project sets fixed random seeds to promote reproducibility. All experiments were conducted on the following computer:
+BTN-V (Bayesian Tensor Network Volterra kernel machines) represents the Volterra kernel as a
+CP-decomposed tensor, which reduces the number of parameters from O(I^D) to O(DIR). All tensor
+factors and hyperparameters are random variables, so the model gives predictive uncertainty at no
+extra cost. Sparsity-inducing priors choose the rank and learn the fading memory of the system
+from the data.
 
-- **Device**: MacBook Pro 
-- **Chip**: Apple M2 Pro 
-- **Memory**: 16 GB LPDDR5
-- **Operating System**: macOS 15.5 
+## Installation
 
-However, please note that some computations may still yield slightly different results across operating systems (e.g., macOS vs Windows), hardware architectures, or Python library versions.
+Python 3.11 was used.
 
-This work introduces Bayesian Tensor Network Volterra kernel machines (BTN-V), extending the Bayesian Tensor Network (BTN) framework to Volterra system identification. BTN-V represents Volterra kernels via canonical polyadic decomposition, reducing model complexity from $\mathcal{O}(I^D)$ to $\mathcal{O}(DIR)$. By treating all tensor components and hyperparameters as random variables, BTN-V provides predictive uncertainty estimation at no extra cost. Sparsity-inducing hierarchical priors enable automatic rank determination and learning of fading-memory behavior directly from data, improving interpretability and avoiding overfitting. Empirical results demonstrate competitive accuracy, enhanced uncertainty quantification, and reduced computational cost.
+```bash
+git clone https://github.com/afrakilic/BTN_Volterra_Sys_ID.git
+cd BTN_Volterra_Sys_ID
+pip install -r requirements.txt
+```
 
-If you find the paper or this repository helpful in your publications, please consider citing it.
+## Repository structure
+
+```
+btnv/          the model
+  model.py       BTNV class: train, predict
+  utils.py       Volterra feature map and linear-algebra helpers
+experiments/
+  cascaded_tanks.py   reproduces Table 1, Figure 2 and Figure 3
+data/
+  dataBenchmark.mat      Cascaded Tanks benchmark (Schoukens et al., 2016)
+  BMVALS_all_runs.csv    BMVALS predictions (mean and variance) for 10 runs
+```
+
+## Usage
+
+```python
+from btnv import BTNV
+
+model = BTNV().train(u_train, y_train, M=100, D=3, R=20,
+                     a0=1e-3, b0=1e-3, c0=1e-5, d0=1e-6, g0=1e-6, h0=1e-6, max_iter=25)
+mean, std = model.predict(u_test)
+print(model.rank, model.train_time)
+```
+
+## Reproducing the paper
+
+```bash
+python experiments/cascaded_tanks.py
+```
+
+This trains BTN-V for 10 seeds with the lag precisions δ on and off, prints Table 1 (RMSE, NLL,
+training time and effective rank, plus the BMVALS baseline) and shows Figures 2 and 3.
+The RVS and SED-MPK rows of Table 1 are taken from the literature, and the BMVALS training time was
+measured with the original MATLAB code.
+
+All experiments use fixed random seeds. They were run on a MacBook Pro (Apple M2 Pro, 16 GB,
+macOS 15.7.1); other operating systems, hardware or library versions may give slightly different
+numbers, and training times depend on the machine.
+
+## Citation
 
 ```bibtex
 @misc{kilic2025fullyprobabilistictensornetwork,
-      title={A Fully Probabilistic Tensor Network for Regularized Volterra System Identification}, 
+      title={A Fully Probabilistic Tensor Network for Regularized Volterra System Identification},
       author={Afra Kilic and Kim Batselier},
       year={2025},
       eprint={2511.20457},
       archivePrefix={arXiv},
       primaryClass={stat.ML},
-      url={https://arxiv.org/abs/2511.20457}, 
+      url={https://arxiv.org/abs/2511.20457},
 }
 ```
 
----
+## License and author
 
-## Installation
+GNU General Public License, see [LICENSE](LICENSE).
 
+[Afra Kilic](https://www.tudelft.nl/staff/h.a.kilic/), PhD candidate, [Delft Center for Systems and Control](https://www.tudelft.nl/en/3me/about/departments/delft-center-for-systems-and-control/), Delft University of Technology (H.A.Kilic@tudelft.nl | hafra.kilic@gmail.com).
+This research is part of the project Sustainable learning for Artificial Intelligence from noisy large-scale data (project number VI.Vidi.213.017), financed by the Dutch Research Council (NWO).
 
-
-Make sure you have Python **3.11.13** installed.
-
-Install dependencies:
-
-```bash
-git https://github.com/afrakilic/BTN_Volterra_Sys_ID.git
-cd BTN_Volterra_Sys_ID
-```
-
-and then install the required packages by, e.g., running
-
-```bash
-pip install -r requirements.txt
-```
-
-
-The repository is provided under the GNU General Public License. See the [LICENSE](https://github.com/afrakilic/BTN-Kernel-Machines/blob/main/LICENSE) file included with this repository.
-
----
-
-## Author
-
-[Afra KILIC](https://www.tudelft.nl/staff/h.a.kilic/), PhD Candidate [H.A.Kilic@tudelft.nl | hafra.kilic@gmail.com]
-
-> [Delft Center for Systems and Control](https://www.tudelft.nl/en/3me/about/departments/delft-center-for-systems-and-control/) in [Delft University of Technology](https://www.tudelft.nl/en/)
-
-> This research is part of the project Sustainable learning for Artificial Intelligence from noisy large-scale data (with project number VI.Vidi.213.017) which is financed by the Dutch Research Council (NWO).
-
-Copyright (c) 2025 Afra Kilic.
-
-Copyright notice: Technische Universiteit Delft hereby disclaims all copyright interest. 
+Copyright (c) 2025 Afra Kilic. Technische Universiteit Delft hereby disclaims all copyright interest.
