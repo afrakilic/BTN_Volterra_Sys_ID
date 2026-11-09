@@ -258,20 +258,15 @@ class BTNV:
             prod = np.multiply(prod, Phi @ self.W_D[d])
         mean = np.sum(prod, axis=1)
 
-        # Sum over factors of g_d^T Sigma_d g_d.
-        # NOTE: kept exactly as in the code used for the paper. Here `others` is
-        # built from single ROWS of Phi (rows 0..D-1, skipping row d) instead of
-        # Phi @ W^(k) for every sample, so it is the same for all test points.
-        quad = 0
+        PW = [Phi @ W for W in self.W_D]
+        quad = np.zeros(N)
         for d in range(D):
-            W_others = [W for k, W in enumerate(self.W_D) if k != d]
-            Phi_rows = [row for k, row in enumerate(Phi) if k != d]
             others = np.ones((N, R))
-            for k in range(len(W_others)):
-                others *= Phi_rows[k] @ W_others[k]
-            g = columnwise_kronecker(Phi.T, others.T)
-            quad += g.T @ self.V[d] @ g
-
-        S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + (quad / (D * self.M * R)))
-        std = np.sqrt(np.diag(S))
+            for k in range(D):
+                if k != d:
+                    others *= PW[k]
+            g = columnwise_kronecker(others.T, Phi.T)          # index r*I + i
+            quad += np.sum((g.T @ self.V[d]) * g.T, axis=1)
+        S = (2 * self.a / (2 * self.a - 2)) * ((self.b / self.a) + quad)
+        std = np.sqrt(S)
         return mean, std
